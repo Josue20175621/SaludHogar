@@ -1,0 +1,22 @@
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.vite/
+frontend/tsconfig.tsbuildinfo
+
+# Ignore Python bytecode and caches recursively inside backend/app
+backend/app/**/__pycache__/
+backend/app/**/*.py[cod]
+backend/app/.pytest_cache/
+backend/app/.mypy_cache/
+
+/backend/venv/
+
+.env
+.env.*
+*.log
+*.sqlite3
+*.db
+*.pem
+.DS_Store
+.idea/
+.vscode/
