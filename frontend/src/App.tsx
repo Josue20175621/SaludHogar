@@ -52,7 +52,7 @@ function App() {
               <Shield className="w-6 h-6 text-cyan-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Seguro y Confiable</h3>
-            <p className="text-gray-600 text-sm">Profesionales certificados y servicios de calidad garantizada</p>
+            <p className="text-gray-600 text-sm">Servicios de calidad garantizada</p>
           </div>
           
           <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center shadow-sm border border-white/20">

@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas import LoginForm, RegisterForm, UserOut
-from models import User
+from schemas import LoginForm, RegisterForm, FamilyForm, FamilyMemberForm, FamilyMemberUpdateForm, UserOut, FamilyOut, FamilyMemberOut
+from models import User, Family, FamilyMember
 from database import get_db
 from security.passwords import hash_password, verify_password
 import redis.asyncio as redis
@@ -74,6 +75,116 @@ async def current_user(request: Request, db: AsyncSession = Depends(get_db)) -> 
         )
     return user
 
+@app.get("/families", response_model=list[FamilyOut])
+async def get_families(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    stmt = (
+        select(Family)
+        .options(selectinload(Family.members))
+        .where(Family.owner_id == user.id)
+        .order_by(Family.id)
+    )
+
+    families = (await db.scalars(stmt)).all()
+    return families
+
+@app.post("/families", response_model=FamilyOut)
+async def add_family(data: FamilyForm, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    f = Family(name=data.name, owner_id=user.id)
+    db.add(f)
+    await db.commit()
+    await db.refresh(f, ["members"])
+    return f
+
+@app.delete("/families/{family_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_family(family_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)) -> None:
+    stmt = select(Family).where(Family.id == family_id)
+    family = (await db.execute(stmt)).scalar_one_or_none()
+
+    if family is None: raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Family not found")
+    if family.owner_id != user.id: raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your family")
+
+    await db.delete(family)      # cascade="all, delete-orphan" handles members
+    await db.commit()
+
+@app.patch("/families/{family_id}", response_model=FamilyOut)
+async def update_family(
+    family_id: int, 
+    data: FamilyForm,
+    user: User = Depends(current_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Family).where(Family.id == family_id)
+    f = (await db.execute(stmt)).scalar_one_or_none()
+
+    if f is None: raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Family not found")
+    if f.owner_id != user.id: raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to modify this family")
+
+    f.name = data.name
+    await db.commit()
+    await db.refresh(f, ["members"])
+    return f
+
+@app.post("/families/{family_id}/members", response_model=FamilyMemberOut, status_code=status.HTTP_201_CREATED)
+async def add_member(family_id: int, member: FamilyMemberForm, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    stmt = select(Family).where(Family.id == family_id)
+    family = (await db.execute(stmt)).scalar_one_or_none()
+
+    if family is None: raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Family not found")
+    if family.owner_id != user.id: raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your family")
+
+    m = FamilyMember(**member.model_dump(), family_id=family_id)
+    db.add(m)
+    await db.commit()
+    await db.refresh(m)
+    return m
+
+@app.delete("/families/{family_id}/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_member(
+    family_id: int,
+    member_id: int,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(FamilyMember).join(Family).where(
+        FamilyMember.id == member_id,
+        FamilyMember.family_id == family_id,
+        Family.owner_id == user.id
+    )
+    member = (await db.execute(stmt)).scalar_one_or_none()
+
+    if member is None: raise HTTPException(status_code=404, detail="Member not found or not authorized")
+
+    await db.delete(member)
+    await db.commit()
+
+@app.patch("/families/{family_id}/members/{member_id}", response_model=FamilyMemberOut)
+async def update_member(
+    family_id: int,
+    member_id: int,
+    data: FamilyMemberForm,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(FamilyMember).join(Family).where(
+        FamilyMember.id == member_id,
+        FamilyMember.family_id == family_id,
+        Family.owner_id == user.id
+    )
+    member = (await db.execute(stmt)).scalar_one_or_none()
+
+    if member is None: raise HTTPException(status_code=404, detail="Member not found or not authorized")
+
+    # Get a dict of only the fields that were sent in the request
+    update_data = data.model_dump(exclude_unset=True)
+
+    # Update the member model with the new data
+    for key, value in update_data.items():
+        setattr(member, key, value)
+    
+    await db.commit()
+    await db.refresh(member)
+    return member
+
 @app.post("/login")
 async def login(data: LoginForm, response: Response, db: AsyncSession = Depends(get_db)):
     stmt = select(User).where(User.email == data.email)
@@ -105,7 +216,7 @@ async def register(payload: RegisterForm, resp: Response, db: AsyncSession = Dep
             detail="Email already registered",
         )
     
-    user = User(fullname=payload.fullname, email=payload.email, password_hash=hash_password(payload.password))
+    user = User(first_name=payload.first_name, last_name=payload.last_name, email=payload.email, password_hash=hash_password(payload.password))
     db.add(user)
     await db.commit()
     await db.refresh(user)
