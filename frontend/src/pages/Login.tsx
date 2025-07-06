@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Heart, Mail, Lock, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import {useAuth} from '../context/AuthContext';
-import api from '../api/axios';
+import {authApi} from '../api/axios';
 
 function Login() {
   const [email, setEmail] = useState<string>('');
@@ -19,7 +19,7 @@ function Login() {
     setIsLoading(true);
     
     try {
-      await api.post('/login', { email, password });
+      await authApi.post('/login', { email, password });
       login();
       navigate('/dashboard');
     } catch (error: any) {

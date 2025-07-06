@@ -8,7 +8,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     """Common declarative base for the whole model hierarchy."""
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -22,14 +21,14 @@ class User(Base):
         TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
     )
 
-    # One user can own many families
-    owned_families: Mapped[List["Family"]] = relationship(
+    family: Mapped[Optional["Family"]] = relationship(
         back_populates="owner",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        uselist=False
     )
 
-    def __repr__(self) -> str:  # optional, but handy for debugging
+    def __repr__(self) -> str:
         return f"<User id={self.id} first_name={self.first_name!r} last_name={self.last_name!r}>"
 
 
@@ -40,7 +39,9 @@ class Family(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     owner_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), 
+        nullable=False,
+        unique=True
     )
     
     created_at: Mapped[datetime] = mapped_column(
@@ -48,7 +49,7 @@ class Family(Base):
     )
 
     # --- relationships -----------------------------------------------------
-    owner: Mapped[User] = relationship(back_populates="owned_families")
+    owner: Mapped[User] = relationship(back_populates="family")
 
     members: Mapped[List["FamilyMember"]] = relationship(
         back_populates="family",

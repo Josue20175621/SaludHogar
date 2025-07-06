@@ -2,8 +2,8 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Heart, Mail, Lock, ArrowLeft, Eye, EyeOff, User } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import api from '../api/axios';
+import {useAuth} from '../context/AuthContext';
+import {authApi} from '../api/axios';
 
 function Register() {
   const [email, setEmail] = useState<string>('');
@@ -34,7 +34,11 @@ function Register() {
     setIsLoading(true);
 
     try {
-      await api.post('/register', { first_name, last_name, email, password });
+      console.log('first_name' + first_name);
+      console.log('last_name' + last_name);
+      console.log('email' + email);
+      console.log('password' + password);
+      await authApi.post('/register', { first_name, last_name, email, password });
       login();
       navigate('/dashboard');
 

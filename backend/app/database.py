@@ -1,6 +1,9 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from dotenv import load_dotenv
+
+from app.config import settings
+import redis.asyncio as redis
 import os
 from pathlib import Path
 
@@ -29,3 +32,5 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await db.rollback()
             raise
+
+redis_client: redis.Redis = redis.from_url(settings.REDIS_URL, decode_responses=True)

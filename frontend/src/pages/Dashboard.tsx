@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import LogoutButton from '../components/LogoutButton';
 import { Heart, Users, Plus, User, Trash2, Menu, X, Pencil } from 'lucide-react';
-import api from '../api/axios';
+import { familyApi } from '../api/axios';
 
 interface FamilyMemberRaw {
   id: string;
@@ -21,50 +21,45 @@ interface FamilyRaw {
 }
 
 const FAPI = {
-  // Get all families
-  getFamilies: async (): Promise<FamilyRaw[]> => {
+  getFamily: async (): Promise<FamilyRaw | null> => {
     try {
-      const response = await api.get<FamilyRaw[]>('/families');
+      const response = await familyApi.get<FamilyRaw>('');
       return response.data;
     } catch (err) {
-      throw new Error(`Failed to fetch families: ${err}`);
+      return null;
     }
   },
 
-  // Create a new family
   createFamily: async (name: string): Promise<FamilyRaw> => {
     try {
-      const response = await api.post<FamilyRaw>('/families', { name });
+      const response = await familyApi.post<FamilyRaw>('', { name });
       return response.data;
     } catch (err) {
       throw new Error(`Failed to create family: ${err}`);
     }
   },
 
-  // Update a family's name
-  updateFamily: async (familyId: string, name: string): Promise<FamilyRaw> => {
+  updateFamily: async (name: string): Promise<FamilyRaw> => {
     try {
-      const response = await api.patch<FamilyRaw>(`/families/${familyId}`, { name });
+      const response = await familyApi.patch<FamilyRaw>('', { name });
       return response.data;
     } catch (err) {
       throw new Error(`Failed to update family: ${err}`);
     }
   },
 
-  // Delete a family
-  deleteFamily: async (familyId: string): Promise<void> => {
+  deleteFamily: async (): Promise<void> => {
     try {
-      await api.delete(`/families/${familyId}`);
+      await familyApi.delete('');
     } catch (err) {
       throw new Error(`Failed to delete family: ${err}`);
     }
   },
 
-  // Add a member to a family
-  addMember: async (familyId: number, member: Omit<FamilyMemberRaw, 'id'>): Promise<FamilyMemberRaw> => {
+  addMember: async (member: Omit<FamilyMemberRaw, 'id'>): Promise<FamilyMemberRaw> => {
     try {
-      const response = await api.post<FamilyMemberRaw>(
-        `/families/${familyId}/members`,
+      const response = await familyApi.post<FamilyMemberRaw>(
+        `/members`,
         member
       );
       return response.data;
@@ -74,10 +69,10 @@ const FAPI = {
   },
 
   // Update a member in a family
-  updateMember: async (familyId: string, memberId: string, member: Partial<Omit<FamilyMemberRaw, 'id'>>): Promise<FamilyMemberRaw> => {
+  updateMember: async (memberId: string, member: Partial<Omit<FamilyMemberRaw, 'id'>>): Promise<FamilyMemberRaw> => {
     try {
-      const response = await api.patch<FamilyMemberRaw>(
-        `/families/${familyId}/members/${memberId}`,
+      const response = await familyApi.patch<FamilyMemberRaw>(
+        `/members/${memberId}`,
         member
       );
       return response.data;
@@ -87,9 +82,9 @@ const FAPI = {
   },
 
   // Delete a member from a family
-  deleteMember: async (familyId: string, memberId: string): Promise<void> => {
+  deleteMember: async (memberId: string): Promise<void> => {
     try {
-      await api.delete(`/families/${familyId}/members/${memberId}`);
+      await familyApi.delete(`/members/${memberId}`);
     } catch (err) {
       throw new Error(`Failed to delete member: ${err}`);
     }
@@ -98,8 +93,7 @@ const FAPI = {
 
 function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [families, setFamilies] = useState<FamilyRaw[]>([]);
-  const [selectedFamily, setSelectedFamily] = useState<FamilyRaw | null>(null);
+  const [family, setFamily] = useState<FamilyRaw | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,24 +107,23 @@ function Dashboard() {
     first_name: '', last_name: '', birth_date: '', gender: '',
     relation: '', blood_type: '', phone_number: ''
   });
-  const [familyToEdit, setFamilyToEdit] = useState<FamilyRaw | null>(null);
   const [editedFamilyName, setEditedFamilyName] = useState('');
   const [memberToEdit, setMemberToEdit] = useState<FamilyMemberRaw | null>(null);
   const [editedMember, setEditedMember] = useState<FamilyMemberRaw | null>(null);
 
   useEffect(() => {
-    loadFamilies();
+    loadFamily();
   }, []);
 
-  const loadFamilies = async () => {
+  const loadFamily = async () => {
     try {
       setLoading(true);
       setError(null);
-      const familiesData = await FAPI.getFamilies();
-      setFamilies(familiesData);
+      const familyData = await FAPI.getFamily();
+      setFamily(familyData);
     } catch (err) {
-      setError('Error loading families');
-      console.error('Error loading families:', err);
+      setError('Error loading family');
+      console.error('Error loading family:', err);
     } finally {
       setLoading(false);
     }
@@ -142,10 +135,9 @@ function Dashboard() {
       setLoading(true);
       setError(null);
       const newFamily = await FAPI.createFamily(newFamilyName);
-      setFamilies([...families, newFamily]);
+      setFamily(newFamily);
       setNewFamilyName('');
       setShowNewFamilyForm(false);
-      setSelectedFamily(newFamily);
     } catch (err) {
       setError('Error creating family');
     } finally {
@@ -154,20 +146,13 @@ function Dashboard() {
   };
 
   const updateFamilyName = async () => {
-    if (!familyToEdit || !editedFamilyName.trim()) return;
+    if (!family || !editedFamilyName.trim()) return;
     try {
       setLoading(true);
       setError(null);
-      const updatedFamilyData = await FAPI.updateFamily(familyToEdit.id, editedFamilyName);
-      const updatedFamilies = families.map(f =>
-        f.id === familyToEdit.id ? { ...f, name: updatedFamilyData.name } : f
-      );
-      setFamilies(updatedFamilies);
-      if (selectedFamily?.id === familyToEdit.id) {
-        setSelectedFamily({ ...selectedFamily, name: updatedFamilyData.name });
-      }
+      const updatedFamilyData = await FAPI.updateFamily(editedFamilyName);
+      setFamily({ ...family, name: updatedFamilyData.name });
       setShowEditFamilyModal(false);
-      setFamilyToEdit(null);
     } catch (err) {
       setError('Error updating family name');
     } finally {
@@ -175,15 +160,13 @@ function Dashboard() {
     }
   };
 
-  const deleteFamily = async (familyId: string) => {
+  const deleteFamily = async () => {
+    if (!family) return;
     try {
       setLoading(true);
       setError(null);
-      await FAPI.deleteFamily(familyId);
-      setFamilies(families.filter(f => f.id !== familyId));
-      if (selectedFamily?.id === familyId) {
-        setSelectedFamily(null);
-      }
+      await FAPI.deleteFamily();
+      setFamily(null);
     } catch (err) {
       setError('Error deleting family');
     } finally {
@@ -192,14 +175,12 @@ function Dashboard() {
   };
 
   const addMember = async () => {
-    if (!selectedFamily || !newMember.first_name.trim() || !newMember.last_name.trim() || !newMember.birth_date || !newMember.relation || !newMember.blood_type) return;
+    if (!family || !newMember.first_name.trim() || !newMember.last_name.trim() || !newMember.birth_date || !newMember.relation || !newMember.blood_type) return;
     try {
       setLoading(true);
       setError(null);
-      const addedMember = await FAPI.addMember(Number(selectedFamily.id), newMember);
-      const updatedFamily = { ...selectedFamily, members: [...selectedFamily.members, addedMember] };
-      setFamilies(families.map(f => f.id === selectedFamily.id ? updatedFamily : f));
-      setSelectedFamily(updatedFamily);
+      const addedMember = await FAPI.addMember(newMember);
+      setFamily({ ...family, members: [...family.members, addedMember] });
       setNewMember({ first_name: '', last_name: '', birth_date: '', gender: '', relation: '', blood_type: '', phone_number: '' });
       setShowNewMemberForm(false);
     } catch (err) {
@@ -210,16 +191,14 @@ function Dashboard() {
   };
 
   const updateMember = async () => {
-    if (!selectedFamily || !memberToEdit || !editedMember || !editedMember.first_name.trim() || !editedMember.last_name.trim()) return;
+    if (!family || !memberToEdit || !editedMember || !editedMember.first_name.trim() || !editedMember.last_name.trim()) return;
     try {
       setLoading(true);
       setError(null);
       const { id, ...memberData } = editedMember;
-      const updatedMemberData = await FAPI.updateMember(selectedFamily.id, memberToEdit.id, memberData);
-      const updatedMembers = selectedFamily.members.map(m => m.id === memberToEdit.id ? updatedMemberData : m);
-      const updatedFamily = { ...selectedFamily, members: updatedMembers };
-      setFamilies(families.map(f => f.id === selectedFamily.id ? updatedFamily : f));
-      setSelectedFamily(updatedFamily);
+      const updatedMemberData = await FAPI.updateMember(memberToEdit.id, memberData);
+      const updatedMembers = family.members.map(m => m.id === memberToEdit.id ? updatedMemberData : m);
+      setFamily({ ...family, members: updatedMembers });
       setShowEditMemberModal(false);
       setMemberToEdit(null);
     } catch (err) {
@@ -230,14 +209,12 @@ function Dashboard() {
   };
 
   const deleteMember = async (memberId: string) => {
-    if (!selectedFamily) return;
+    if (!family) return;
     try {
       setLoading(true);
       setError(null);
-      await FAPI.deleteMember(selectedFamily.id, memberId);
-      const updatedFamily = { ...selectedFamily, members: selectedFamily.members.filter(m => m.id !== memberId) };
-      setFamilies(families.map(f => f.id === selectedFamily.id ? updatedFamily : f));
-      setSelectedFamily(updatedFamily);
+      await FAPI.deleteMember(memberId);
+      setFamily({ ...family, members: family.members.filter(m => m.id !== memberId) });
     } catch (err) {
       setError('Error deleting member');
     } finally {
@@ -245,13 +222,14 @@ function Dashboard() {
     }
   };
 
-  // Handlers to open edit modals
-  const handleEditFamilyClick = (family: FamilyRaw) => {
-    setFamilyToEdit(family);
+  // Handler to open edit family modal
+  const handleEditFamilyClick = () => {
+    if (!family) return;
     setEditedFamilyName(family.name);
     setShowEditFamilyModal(true);
   };
   
+  // Handler to open edit member modal
   const handleEditMemberClick = (member: FamilyMemberRaw) => {
     setMemberToEdit(member);
     setEditedMember({ ...member });
@@ -304,8 +282,8 @@ function Dashboard() {
         <nav className="flex-1 p-4">
           <div className="space-y-2">
             <button className="w-full flex items-center gap-3 px-3 py-2 text-emerald-700 bg-emerald-50 rounded-lg font-medium">
-              <Users className="w-5 h-5" />
-              {isSidebarOpen && <span>Familias</span>}
+              <User className="w-5 h-5" />
+              {isSidebarOpen && <span>Miembros</span>}
             </button>
           </div>
         </nav>
@@ -320,120 +298,186 @@ function Dashboard() {
         {/* Top Bar */}
         <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-800">Gestión de Familias</h1>
-            <button onClick={() => setShowNewFamilyForm(true)} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50">
-              <Plus className="w-4 h-4" /> Nueva Familia
-            </button>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-gray-800">
+                {family ? family.name : 'Mi Familia'}
+              </h1>
+              {family && (
+                <button 
+                  onClick={handleEditFamilyClick} 
+                  disabled={loading} 
+                  className="p-2 text-gray-400 hover:text-emerald-500 transition-colors disabled:opacity-50"
+                  title="Editar nombre de familia"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {family && (
+              <button 
+                onClick={() => setShowNewMemberForm(true)} 
+                disabled={loading} 
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4" /> Agregar Miembro
+              </button>
+            )}
           </div>
         </header>
 
         {/* Content Area */}
         <main className="flex-1 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            {/* Families List */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-full">
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-semibold text-gray-800">Mis Familias</h2>
-                    <button onClick={loadFamilies} className="p-1 text-gray-400 hover:text-gray-600 transition-colors" title="Refresh families"><Users className="w-4 h-4" /></button>
-                  </div>
+          {!family ? (
+            /* No Family State */
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-md">
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Users className="w-10 h-10 text-emerald-600" />
                 </div>
-                <div className="p-4 space-y-3">
-                  {families.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">No tienes familias creadas</p>
-                      <p className="text-sm text-gray-400">Crea tu primera familia para comenzar</p>
-                    </div>
-                  ) : (
-                    families.map(family => (
-                      <div key={family.id} className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedFamily?.id === family.id ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'}`} onClick={() => setSelectedFamily(family)}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-medium text-gray-800">{family.name}</h3>
-                            <p className="text-sm text-gray-500">{family.members.length} miembros</p>
-                          </div>
-                          <div className="flex items-center">
-                            <button onClick={(e) => { e.stopPropagation(); handleEditFamilyClick(family); }} disabled={loading} className="p-1 text-gray-400 hover:text-emerald-500 transition-colors disabled:opacity-50"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={(e) => { e.stopPropagation(); deleteFamily(family.id); }} disabled={loading} className="p-1 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"><Trash2 className="w-4 h-4" /></button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-3">¡Bienvenido a SaludHogar!</h2>
+                <p className="text-gray-600 mb-6">
+                  Comienza creando tu familia para gestionar la información de salud de todos tus seres queridos en un solo lugar.
+                </p>
+                <button 
+                  onClick={() => setShowNewFamilyForm(true)} 
+                  disabled={loading} 
+                  className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 mx-auto"
+                >
+                  <Plus className="w-5 h-5" /> Crear Mi Familia
+                </button>
               </div>
             </div>
+          ) : (
+            /* Family Members */
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800">Miembros de la Familia</h2>
+                    <p className="text-gray-600">{family.members.length} miembros registrados</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={loadFamily} 
+                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors" 
+                      title="Actualizar lista"
+                    >
+                      <Users className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={deleteFamily} 
+                      disabled={loading} 
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                      title="Eliminar familia"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
 
-            {/* Family Details */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-full">
-                {selectedFamily ? (
-                  <>
-                    <div className="p-4 border-b border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <h2 className="font-semibold text-gray-800">{selectedFamily.name}</h2>
-                        <button onClick={() => setShowNewMemberForm(true)} disabled={loading} className="flex items-center gap-2 px-3 py-1 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm disabled:opacity-50"><Plus className="w-4 h-4" /> Agregar Miembro</button>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      {selectedFamily.members.length === 0 ? (
-                        <div className="text-center py-8">
-                          <User className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500">No hay miembros en esta familia</p>
-                          <p className="text-sm text-gray-400">Agrega el primer miembro para comenzar</p>
-                        </div>
-                      ) : (
-                        <div className="grid gap-4">
-                          {selectedFamily.members.map(member => (
-                            <div key={member.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-gray-600" /></div>
-                                <div>
-                                  <h3 className="font-medium text-gray-800">{member.first_name} {member.last_name}</h3>
-                                  <p className="text-sm text-gray-500">{member.gender} • {member.birth_date}{member.relation && ` • ${member.relation}`}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center">
-                                <button onClick={() => handleEditMemberClick(member)} disabled={loading} className="p-2 text-gray-400 hover:text-emerald-500 transition-colors disabled:opacity-50"><Pencil className="w-4 h-4" /></button>
-                                <button onClick={() => deleteMember(member.id)} disabled={loading} className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"><Trash2 className="w-4 h-4" /></button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
+                {family.members.length === 0 ? (
+                  <div className="text-center py-12">
+                    <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">No hay miembros registrados</h3>
+                    <p className="text-gray-500 mb-6">Agrega el primer miembro de tu familia para comenzar</p>
+                    <button 
+                      onClick={() => setShowNewMemberForm(true)} 
+                      disabled={loading} 
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 mx-auto"
+                    >
+                      <Plus className="w-4 h-4" /> Agregar Primer Miembro
+                    </button>
+                  </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-800 mb-2">Selecciona una familia</h3>
-                      <p className="text-gray-500">Elige una familia de la lista para ver sus miembros</p>
-                    </div>
+                  <div className="grid gap-4">
+                    {family.members.map(member => (
+                      <div key={member.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full flex items-center justify-center">
+                            <User className="w-6 h-6 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-800">{member.first_name} {member.last_name}</h3>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <span>{member.relation}</span>
+                              <span>•</span>
+                              <span>{member.gender}</span>
+                              <span>•</span>
+                              <span>{member.birth_date}</span>
+                              {member.blood_type && (
+                                <>
+                                  <span>•</span>
+                                  <span>Tipo {member.blood_type}</span>
+                                </>
+                              )}
+                            </div>
+                            {member.phone_number && (
+                              <p className="text-sm text-gray-500 mt-1">{member.phone_number}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => handleEditMemberClick(member)} 
+                            disabled={loading} 
+                            className="p-2 text-gray-400 hover:text-emerald-500 transition-colors disabled:opacity-50"
+                            title="Editar miembro"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => deleteMember(member.id)} 
+                            disabled={loading} 
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                            title="Eliminar miembro"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
 
       {/* New Family Modal */}
       {showNewFamilyForm && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Nueva Familia</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Crear Mi Familia</h3>
               <div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de la familia</label>
-                  <input type="text" value={newFamilyName} onChange={(e) => setNewFamilyName(e.target.value)} placeholder="Ej: Familia García" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" disabled={loading} />
+                  <input 
+                    type="text" 
+                    value={newFamilyName} 
+                    onChange={(e) => setNewFamilyName(e.target.value)} 
+                    placeholder="Ej: Familia García" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                    disabled={loading}
+                    onKeyPress={(e) => e.key === 'Enter' && createFamily()}
+                  />
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setShowNewFamilyForm(false)} disabled={loading} className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50">Cancelar</button>
-                  <button onClick={createFamily} disabled={loading} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50">Crear</button>
+                  <button 
+                    onClick={() => setShowNewFamilyForm(false)} 
+                    disabled={loading} 
+                    className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={createFamily} 
+                    disabled={loading || !newFamilyName.trim()} 
+                    className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  >
+                    Crear
+                  </button>
                 </div>
               </div>
             </div>
@@ -442,19 +486,39 @@ function Dashboard() {
       )}
 
       {/* Edit Family Modal */}
-      {showEditFamilyModal && familyToEdit && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      {showEditFamilyModal && family && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Editar Nombre de Familia</h3>
               <div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de la familia</label>
-                  <input type="text" value={editedFamilyName} onChange={(e) => setEditedFamilyName(e.target.value)} placeholder="Ej: Familia García" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" disabled={loading} />
+                  <input 
+                    type="text" 
+                    value={editedFamilyName} 
+                    onChange={(e) => setEditedFamilyName(e.target.value)} 
+                    placeholder="Ej: Familia García" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                    disabled={loading}
+                    onKeyPress={(e) => e.key === 'Enter' && updateFamilyName()}
+                  />
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setShowEditFamilyModal(false)} disabled={loading} className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50">Cancelar</button>
-                  <button onClick={updateFamilyName} disabled={loading} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50">Guardar Cambios</button>
+                  <button 
+                    onClick={() => setShowEditFamilyModal(false)} 
+                    disabled={loading} 
+                    className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={updateFamilyName} 
+                    disabled={loading || !editedFamilyName.trim()} 
+                    className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  >
+                    Guardar Cambios
+                  </button>
                 </div>
               </div>
             </div>
@@ -464,15 +528,22 @@ function Dashboard() {
 
       {/* Add/Edit Member Modal */}
       {(showNewMemberForm || (showEditMemberModal && editedMember)) && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md my-8">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">{showEditMemberModal ? 'Editar Miembro' : 'Nuevo Miembro'}</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                {showEditMemberModal ? 'Editar Miembro' : 'Nuevo Miembro'}
+              </h3>
               <div className="space-y-4">
                 {(['first_name', 'last_name', 'birth_date', 'gender', 'relation', 'blood_type', 'phone_number'] as const).map(field => {
                   const labels: Record<typeof field, string> = {
-                    first_name: 'Nombre', last_name: 'Apellido', birth_date: 'Fecha de nacimiento',
-                    gender: 'Género', relation: 'Parentesco', blood_type: 'Tipo de sangre', phone_number: 'Teléfono (opcional)'
+                    first_name: 'Nombre', 
+                    last_name: 'Apellido', 
+                    birth_date: 'Fecha de nacimiento',
+                    gender: 'Género', 
+                    relation: 'Parentesco', 
+                    blood_type: 'Tipo de sangre', 
+                    phone_number: 'Teléfono (opcional)'
                   };
 
                   const value = showEditMemberModal ? editedMember?.[field] : newMember[field];
@@ -493,8 +564,16 @@ function Dashboard() {
                     };
                     return (
                       <div key={field}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{labels[field]}</label>
-                        <select value={value} onChange={onChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" disabled={loading}>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {labels[field]}
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <select 
+                          value={value} 
+                          onChange={onChange} 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                          disabled={loading}
+                        >
                           <option value="">Seleccionar...</option>
                           {options[field].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
@@ -504,15 +583,38 @@ function Dashboard() {
                   
                   return (
                     <div key={field}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{labels[field]}</label>
-                      <input type={field === 'birth_date' ? 'date' : field === 'phone_number' ? 'tel' : 'text'} value={value} onChange={onChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" disabled={loading} />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {labels[field]}
+                        {field !== 'phone_number' && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      <input 
+                        type={field === 'birth_date' ? 'date' : field === 'phone_number' ? 'tel' : 'text'} 
+                        value={value} 
+                        onChange={onChange} 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                        disabled={loading} 
+                      />
                     </div>
                   );
                 })}
 
                 <div className="flex gap-3 pt-4">
-                  <button onClick={() => { showEditMemberModal ? setShowEditMemberModal(false) : setShowNewMemberForm(false); }} disabled={loading} className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50">Cancelar</button>
-                  <button onClick={showEditMemberModal ? updateMember : addMember} disabled={loading} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50">{showEditMemberModal ? 'Guardar Cambios' : 'Agregar'}</button>
+                  <button 
+                    onClick={() => { 
+                      showEditMemberModal ? setShowEditMemberModal(false) : setShowNewMemberForm(false); 
+                    }} 
+                    disabled={loading} 
+                    className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={showEditMemberModal ? updateMember : addMember} 
+                    disabled={loading} 
+                    className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  >
+                    {showEditMemberModal ? 'Guardar Cambios' : 'Agregar'}
+                  </button>
                 </div>
               </div>
             </div>

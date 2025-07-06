@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
-import api from '../api/axios';
+import {authApi} from '../api/axios';
 
 interface AuthCtx {
   isAuthenticated: boolean;
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        await api.get('/me');      // if 200 → cookie is valid
+        await authApi.get('/me');      // if 200 → cookie is valid
         setAuthenticated(true);
       } catch {
         setAuthenticated(false);
@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login  = () => setAuthenticated(true);
 
   const logout = async () => {
-    await api.post('/logout');     // cookie is cleared on the server
+    await authApi.post('/logout');     // cookie is cleared on the server
     setAuthenticated(false);       // UI updates immediately
   };
 
