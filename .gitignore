@@ -11,6 +11,9 @@ backend/app/.mypy_cache/
 
 /backend/venv/
 
+backend/alembic/
+backend/alembic.ini
+
 .env
 .env.*
 *.log

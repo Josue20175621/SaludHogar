@@ -59,3 +59,14 @@ class FamilyOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class TOTP(BaseModel):
+    code: str
+    token: str
+
+class TOTPSetup(BaseModel):
+    secret: str
+    otp_auth_url: str
+
+class TOTPVerifyRequest(BaseModel):
+    secret: str
+    totp_code: str

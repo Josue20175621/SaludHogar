@@ -14,7 +14,7 @@ const LogoutButton: FC<Props> = ({ isSidebarOpen }) => {
 
   const handleClick = async () => {
     try {
-      await logout();                          // backend call + state reset
+      await logout();                         // backend call + state reset
       navigate('/login');
     } catch (e) {
       console.error(e);

@@ -1,17 +1,19 @@
-from fastapi import Depends, HTTPException, status, Response, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+import pyotp
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession 
 from app.config import settings
 from app.database import get_db
 from app.models import User
-from app.schemas import LoginForm, RegisterForm
-from app.security.passwords import hash_password, verify_password
-from app.auth.session import store_session, set_auth_cookie, clear_auth_cookie, new_sid, redis_client
+from app.auth.session import redis_client
 
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> User:
+    """
+    Returns user if logged in, else raise HTTPException
+    """
     # Get session ID from cookie
     sid = request.cookies.get(settings.COOKIE_NAME)
     if not sid:
@@ -29,8 +31,7 @@ async def get_current_user(
         )
     
     # Get user from database
-    stmt = select(User).where(User.id == int(user_id))
-    user = (await db.execute(stmt)).scalars().first()
+    user = await get_user_by_id(int(user_id), db)
 
     if user is None:
         # Cleanup orphaned session
@@ -42,46 +43,11 @@ async def get_current_user(
     
     return user
 
-async def handle_user_login(
-    response: Response, form: LoginForm, db: AsyncSession = Depends(get_db)
-) -> User:
-    stmt = select(User).where(User.email == form.email)
-    user = (await db.scalars(stmt)).first()
-    if not user or not verify_password(form.password, user.password_hash):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
-    
-    sid = new_sid()
-    await store_session(sid, user.id)
-    set_auth_cookie(response, sid)
-    
-    return user
+async def get_user_by_id(uid: int, db: AsyncSession) -> User | None: return (await db.scalars(select(User).where(User.id == uid))).first()
 
-async def handle_user_logout(request: Request, response: Response):
-    """
-    Dependency to handle user logout by deleting the session and clearing the cookie.
-    """
-    sid = request.cookies.get(settings.COOKIE_NAME)
-    if sid: await redis_client.delete(f"sid:{sid}")
-    clear_auth_cookie(response)
-
-async def handle_user_registration(
-    response: Response, form: RegisterForm, db: AsyncSession = Depends(get_db)
-) -> User:
-    if (await db.scalars(select(User).where(User.email == form.email))).first():
-        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
-    
-    new_user = User(
-        email=form.email,
-        first_name=form.first_name,
-        last_name=form.last_name,
-        password_hash=hash_password(form.password)
-    )
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-
-    sid = new_sid()
-    await store_session(sid, new_user.id)
-    set_auth_cookie(response, sid)
-    
-    return new_user
+def totp_ok(secret: str, code: str, valid_window: int = 1) -> bool:
+    try:
+        totp = pyotp.TOTP(secret)
+        return totp.verify(code, valid_window=valid_window)
+    except Exception:
+        return False

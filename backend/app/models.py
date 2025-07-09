@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import List, Optional
 
-from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date
+from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -20,6 +20,9 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
     )
+
+    is_totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    totp_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     family: Mapped[Optional["Family"]] = relationship(
         back_populates="owner",
