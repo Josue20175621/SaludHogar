@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';      // example private page
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import { AuthProvider } from './context/AuthContext';
+import TwoFactorSetup from './components/auth/TwoFactorSetup';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           {/* everything below this gate is private */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/mfa" element={<TwoFactorSetup/>} />
             {/* add more private routes here */}
           </Route>
 
