@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Response, Request, Depends
-from app.models import User
+from app.models import User, Family, FamilyMember, FamilyMembership
 from app.schemas import UserOut, TOTP, TOTPSetup, TOTPVerifyRequest, LoginForm, RegisterForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select
 from app.database import get_db
 from app.config import settings
@@ -13,26 +14,60 @@ import pyotp, secrets
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(response: Response, form: RegisterForm, db: AsyncSession = Depends(get_db)):
     if (await db.scalars(select(User).where(User.email == form.email))).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
     
-    new_user = User(
-        email=form.email,
-        first_name=form.first_name,
-        last_name=form.last_name,
-        password_hash=hash_password(form.password)
-    )
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+    try:
+        new_user = User(
+            email=form.email,
+            first_name=form.first_name,
+            last_name=form.last_name,
+            password_hash=hash_password(form.password)
+        )
+        db.add(new_user)
+        await db.flush() # Get the new_user.id before the commit
+
+        # Create the Family automatically
+        new_family = Family(name=form.family_name, owner_id=new_user.id)
+
+        db.add(new_family)
+        await db.flush() # Get the new_family.id
+
+        # Create the FamilyMembership link
+        new_membership = FamilyMembership(
+            user_id=new_user.id,
+            family_id=new_family.id,
+            role='owner'
+        )
+        db.add(new_membership)
+
+        initial_member = FamilyMember(
+            family_id=new_family.id,
+            first_name=new_user.first_name,
+            last_name=new_user.last_name,
+            relation='Owner'
+        )
+        db.add(initial_member)
+
+        # Commit the transaction
+        await db.commit()
+    
+    except SQLAlchemyError as e:
+        # Roll back all the changes
+        await db.rollback()
+        print(f"Registration failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not create account. Please try again."
+        )
 
     sid = new_sid()
     await store_session(sid, new_user.id)
     set_auth_cookie(response, sid)
     
-    return new_user
+    return {"message": "Account and family created successfully."}
 
 @router.post("/login")
 async def login(response: Response, form: LoginForm, db: AsyncSession = Depends(get_db)):
@@ -50,7 +85,7 @@ async def login(response: Response, form: LoginForm, db: AsyncSession = Depends(
     await store_session(sid, user.id)
     set_auth_cookie(response, sid)
     
-    return user
+    return {"message": "Login successful"}
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(request: Request, response: Response):

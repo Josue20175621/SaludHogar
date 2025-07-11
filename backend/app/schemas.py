@@ -9,6 +9,7 @@ class LoginForm(BaseModel):
 class RegisterForm(BaseModel):
     first_name: str
     last_name: str
+    family_name: str
     email: EmailStr
     password: str
 
