@@ -1,24 +1,63 @@
-/**
- * Represents the raw data structure for a single family member
- * as received from or sent to the API.
- */
-export interface FamilyMemberRaw {
-  id: string;
+// family.ts terrible name
+export interface User {
+  id: number;
+  email: string;
   first_name: string;
   last_name: string;
-  birth_date: string; // Stored as a string, e.g., "YYYY-MM-DD"
+  families: Family[];
+}
+
+export interface FamilyMember {
+  id: number;
+  first_name: string;
+  last_name: string;
+  birth_date: string;
   gender: string;
   relation: string;
   blood_type: string;
   phone_number: string;
 }
 
-/**
- * Represents the raw data structure for a family, including its members,
- * as received from the API.
- */
-export interface FamilyRaw {
-  id: string;
+export interface Family {
+  id: number;
   name: string;
-  members: FamilyMemberRaw[];
+  role: string;
+}
+
+export interface Appointment {
+  id: number;
+  member_id: number;
+  doctor_name: string;
+  specialty: string;
+  location: string;
+  notes: string;
+  appointment_date: string;
+}
+
+export interface Medication {
+  id: number;
+  member_id: number;
+  name: string;
+  dosage: string;
+  frequency: string;
+  start_date: string;
+  end_date: string;
+  prescribed_by: string;
+  notes: string;
+}
+
+export interface Vaccination {
+  id: number;
+  member_id: number;
+  vaccine_name: string;
+  date_administered: string;
+  administered_by: string;
+  notes: string;
+}
+
+export interface DashboardStats {
+  member_count: number;
+  upcoming_appointment_count: number;
+  active_medication_count: number;
+  vaccination_record_count: number;
 }

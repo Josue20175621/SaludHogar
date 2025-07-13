@@ -4,6 +4,7 @@ from app.schemas import UserOut, TOTP, TOTPSetup, TOTPVerifyRequest, LoginForm, 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from app.database import get_db
 from app.config import settings
 from app.security.passwords import hash_password, verify_password
@@ -94,7 +95,31 @@ async def logout(request: Request, response: Response):
     clear_auth_cookie(response)
 
 @router.get("/me", response_model=UserOut)
-async def get_current_user_info(user = Depends(get_current_user)): return user
+async def get_current_user_info(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    stmt = select(FamilyMembership).where(
+        FamilyMembership.user_id == user.id
+    ).options(joinedload(FamilyMembership.family))
+
+    memberships = (await db.scalars(stmt)).all()
+
+    families_summary = []
+    for mem in memberships:
+        if mem.family:
+            families_summary.append({
+                "id": mem.family.id,
+                "name": mem.family.name,
+                "role": mem.role
+            })
+
+    user_response = {
+        "id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "families": families_summary
+    }
+    
+    return user_response
 
 # 2fa login verification
 @router.post("/2fa/verify", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,45 +1,78 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy.exc import IntegrityError
+# from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
-from app.schemas import FamilyForm, FamilyMemberForm, FamilyOut, FamilyMemberOut
-from app.models import User, Family, FamilyMember
+from app.schemas import FamilyForm, FamilyMemberForm, FamilyOut, FamilyMemberOut, DashboardStats
+from app.models import Family, FamilyMember, Appointment, Medication, Vaccination
 from app.database import get_db
-from .dependencies import get_current_user_family
-from app.auth.dependencies import get_current_user
+from .dependencies import get_current_active_family
 
-router = APIRouter(prefix="/family", tags=["Family"])
+router = APIRouter(prefix="/families/{family_id}", tags=["Family"])
 
-@router.post("", response_model=FamilyOut, status_code=status.HTTP_201_CREATED)
-async def create_family(
-    form: FamilyForm,
-    user: User = Depends(get_current_user),
+@router.get("/members", response_model=list[FamilyMemberOut])
+async def get_family_members(family: Family = Depends(get_current_active_family)):
+    """Get the current user's family's members."""
+    return family.members
+
+@router.get("/stats", response_model=DashboardStats)
+async def get_dashboard_stats(
+    current_family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db)
 ):
-    """Create the family for the current user. This can only be done once."""
-    family = Family(name=form.name, owner_id=user.id)
-    db.add(family)
-    try:
-        await db.commit()
-    except IntegrityError: # This is triggered by the `unique=True` constraint
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A family already exists for this user."
-        )
-    await db.refresh(family, ["members"])
-    return family
+    
+    # Count family members
+    stmt_members = select(func.count(FamilyMember.id)).where(
+        FamilyMember.family_id == current_family.id
+    )
 
-@router.get("", response_model=FamilyOut)
-async def get_family(family: Family = Depends(get_current_user_family)):
-    """Get the current user's family details."""
-    return family
+    # Count upcoming appointments
+    stmt_appointments = select(func.count(Appointment.id)).where(
+        Appointment.family_id == current_family.id,
+        Appointment.appointment_date >= func.now() # func.now() gets the current DB time
+    )
+
+    # Count active medications (assuming empty end_date means active (who wrote this nonsense))
+    stmt_medications = select(func.count(Medication.id)).where(
+        Medication.family_id == current_family.id,
+        Medication.end_date == None
+    )
+    
+    # Count total vaccination records
+    stmt_vaccinations = select(func.count(Vaccination.id)).where(
+        Vaccination.family_id == current_family.id
+    )
+
+    import asyncio
+    
+    member_count_task = db.scalar(stmt_members)
+    appointment_count_task = db.scalar(stmt_appointments)
+    medication_count_task = db.scalar(stmt_medications)
+    vaccination_count_task = db.scalar(stmt_vaccinations)
+
+    (
+        member_count,
+        appointment_count,
+        medication_count,
+        vaccination_count,
+    ) = await asyncio.gather(
+        member_count_task,
+        appointment_count_task,
+        medication_count_task,
+        vaccination_count_task,
+    )
+
+    return {
+        "member_count": member_count,
+        "upcoming_appointment_count": appointment_count,
+        "active_medication_count": medication_count,
+        "vaccination_record_count": vaccination_count
+    }
 
 @router.patch("", response_model=FamilyOut)
 async def update_family(
     form: FamilyForm,
-    family: Family = Depends(get_current_user_family),
+    family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db)
 ):
     """Update the name of the current user's family."""
@@ -50,20 +83,14 @@ async def update_family(
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_family(
-    family: Family = Depends(get_current_user_family),
+    family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db)
 ):
     await db.delete(family)
     await db.commit()
 
-# Family member CRUD
-@router.get("/members", response_model=list[FamilyMemberOut])
-async def list_members(family: Family = Depends(get_current_user_family)):
-    # The dependency already eager loaded the members for us!
-    return family.members
-
 @router.post("/members", response_model=FamilyMemberOut, status_code=status.HTTP_201_CREATED)
-async def add_member(member: FamilyMemberForm, family: Family = Depends(get_current_user_family), db: AsyncSession = Depends(get_db)):
+async def add_member(member: FamilyMemberForm, family: Family = Depends(get_current_active_family), db: AsyncSession = Depends(get_db)):
     m = FamilyMember(**member.model_dump(), family_id=family.id)
     db.add(m)
     await db.commit()
@@ -73,7 +100,7 @@ async def add_member(member: FamilyMemberForm, family: Family = Depends(get_curr
 @router.delete("/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_member(
     member_id: int,
-    family: Family = Depends(get_current_user_family),
+    family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(FamilyMember).join(Family).where(
@@ -91,7 +118,7 @@ async def delete_member(
 async def update_member(
     member_id: int,
     data: FamilyMemberForm,
-    family: Family = Depends(get_current_user_family),
+    family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(FamilyMember).join(Family).where(

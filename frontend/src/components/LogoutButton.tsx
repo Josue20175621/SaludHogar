@@ -1,20 +1,15 @@
-// components/LogoutButton.tsx
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';         // or the icon lib you use
+import { LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-interface Props {
-  isSidebarOpen: boolean;                      // controls label visibility
-}
-
-const LogoutButton: FC<Props> = ({ isSidebarOpen }) => {
+const LogoutButton: FC = () => {
   const { logout } = useAuth();
   const navigate   = useNavigate();
 
   const handleClick = async () => {
     try {
-      await logout();                         // backend call + state reset
+      await logout();
       navigate('/login');
     } catch (e) {
       console.error(e);
@@ -25,10 +20,11 @@ const LogoutButton: FC<Props> = ({ isSidebarOpen }) => {
   return (
     <button
       onClick={handleClick}
-      className="w-full flex items-center gap-3 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+      className="flex items-center gap-2 px-4 py-2 text-white/80 font-medium hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+      aria-label="Cerrar Sesión"
     >
       <LogOut className="w-5 h-5" />
-      {isSidebarOpen && <span>Cerrar Sesión</span>}
+      <span>Cerrar Sesión</span>
     </button>
   );
 };

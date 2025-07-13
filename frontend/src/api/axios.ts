@@ -10,7 +10,7 @@ const baseConfig = {
 
 export const familyApi = axios.create({
   ...baseConfig,
-  baseURL: `${baseConfig.baseURL}/family`,
+  baseURL: `${baseConfig.baseURL}/families`,
 });
 
 export const authApi = axios.create({

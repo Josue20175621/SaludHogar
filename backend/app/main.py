@@ -5,6 +5,9 @@ from app.models import Base
 from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as auth_router
 from app.family.router import router as family_router
+from app.family.appointment.router import router as appointment_router
+from app.family.medication.router import router as medication_router
+from app.family.vaccination.router import router as vaccination_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,3 +30,6 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(family_router)
+app.include_router(appointment_router)
+app.include_router(medication_router)
+app.include_router(vaccination_router)

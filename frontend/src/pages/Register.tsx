@@ -4,10 +4,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Heart, Mail, Lock, ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../api/axios';
-// import { useNotifier } from '../context/NotificationContext';
+import { useNotifier } from '../context/NotificationContext';
 
 function Register() {
-  // const { notify } = useNotifier();
+  const { notify } = useNotifier();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -24,13 +24,13 @@ function Register() {
 
   const handleNextStep = () => {
     if (!first_name.trim() || !last_name.trim() || !email.trim()) {
-      alert('Por favor, completa tu nombre, apellido, nombre de familia y correo electrónico.');
+      notify('Por favor, completa tu nombre, apellido, nombre de familia y correo electrónico.', 'error');
       return;
     }
     
     // A simple email format check
     if (!/\S+@\S+\.\S+/.test(email)) {
-        alert('Por favor, introduce una dirección de correo electrónico válida.');
+        notify('Por favor, introduce una dirección de correo electrónico válida.', 'error');
         return;
     }
     setStep(prev => prev + 1);
@@ -40,17 +40,17 @@ function Register() {
     e.preventDefault();
 
     if (!password || !confirmPassword) {
-      alert('Por favor, introduce y confirma tu contraseña.');
+      notify('Por favor, introduce y confirma tu contraseña.', 'error');
       return;
     }
 
     if (password !== confirmPassword) {
-      alert('Las contraseñas no coinciden.');
+      notify('Las contraseñas no coinciden.', 'error');
       return;
     }
 
     if (password.length < 8) {
-      alert('La contraseña debe tener al menos 8 caracteres.');
+      notify('La contraseña debe tener al menos 8 caracteres.', 'error');
       return; // Stop the submission
     }
 
@@ -69,7 +69,7 @@ function Register() {
       login();
       navigate('/dashboard');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al crear la cuenta');
+      notify(error.response?.data?.message || 'Error al crear la cuenta', 'error');
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime, date
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import List, Optional
 
@@ -34,11 +34,22 @@ class FamilyMemberUpdateForm(BaseModel):
     blood_type: Optional[str] = None
     phone_number: Optional[str] = None
 
+class FamilySummaryOut(BaseModel):
+    id: int
+    name: str
+    role: str
+
+    model_config = ConfigDict(from_attributes=True)
+
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    first_name: str
+    last_name: str
+    
+    # This is the new, crucial part
+    families: List[FamilySummaryOut] 
 
-    # Tell Pydantic that the data might come from a SQLAlchemy model
     model_config = ConfigDict(from_attributes=True)
 
 class FamilyMemberOut(BaseModel):
@@ -71,3 +82,44 @@ class TOTPSetup(BaseModel):
 class TOTPVerifyRequest(BaseModel):
     secret: str
     totp_code: str
+
+class DashboardStats(BaseModel):
+    member_count: int
+    upcoming_appointment_count: int
+    active_medication_count: int
+    vaccination_record_count: int
+
+class AppointmentOut(BaseModel):
+    id: int
+    family_id: int
+    member_id: int
+    appointment_date: datetime
+    doctor_name: str
+    specialty: Optional[str] = None
+    location: Optional[str] = None
+    notes: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class MedicationOut(BaseModel):
+    id: int
+    member_id: int
+    name: str
+    dosage: str
+    frequency: str
+    start_date: Optional[date]
+    end_date: Optional[date]
+    prescribed_by: Optional[str]
+    notes: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+class VaccinationOut(BaseModel):
+    id: int
+    member_id: int
+    vaccine_name: str
+    date_administered: date
+    administered_by: Optional[str]
+    notes: Optional[str]
+    
+    model_config = ConfigDict(from_attributes=True)
