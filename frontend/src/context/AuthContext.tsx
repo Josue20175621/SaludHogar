@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { authApi } from '../api/axios';
+import { useQueryClient } from '@tanstack/react-query';
 import type { User, Family } from '../types/family';
 
 interface AuthCtx {
@@ -8,14 +9,13 @@ interface AuthCtx {
   loading: boolean;
   user: User | null;
   activeFamily: Family | null;
-  login: () => void;
+  fetchAndSetUser: () => Promise<void>;
   logout: () => Promise<void>;
   setActiveFamily: (family: Family) => void;
 
   preAuthToken: string | null;
   setPreAuthToken: (tok: string | null) => void;
 }
-
 
 const AuthContext = createContext<AuthCtx | null>(null);
 
@@ -24,6 +24,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [activeFamily, setActiveFamily] = useState<Family | null>(null);
   const [isAuthenticated, setAuthenticated] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const clearAuthState = () => {
+    setUser(null);
+    setActiveFamily(null);
+    setAuthenticated(false);
+    setPreAuthToken(null);
+    queryClient.removeQueries(); // Still important to clear the cache
+  };
 
   // Read any existing token from sessionStorage once
   const [preAuthToken, _setPreAuthToken] = useState<string | null>(() =>
@@ -49,28 +59,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthenticated(true);
   };
 
+  const fetchAndSetUser = async () => {
+    try {
+      const { data: userData } = await authApi.get<User>('/me');
+      handleSuccessfulAuth(userData); // This sets user, activeFamily, etc.
+    } catch (error) {
+      // If fetching the user fails, it's a full logout.
+      clearAuthState();
+      // Re-throw the error so the calling component knows it failed
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await authApi.post('/logout');
+    } catch (error) {
+      console.error("Logout API call failed, but clearing state anyway:", error);
+    } finally {
+      clearAuthState();
+    }
+  };
+
   useEffect(() => {
-    (async () => {
+    const checkAuthStatus = async () => {
+      setLoading(true);
       try {
-        const { data: userData } = await authApi.get<User>('/me');
-        handleSuccessfulAuth(userData);
+        await fetchAndSetUser();
       } catch {
-        setAuthenticated(false);
+        // We can ignore the error here because fetchAndSetUser handles the state clearing.
       } finally {
         setLoading(false);
       }
-    })();
+    };
+    checkAuthStatus();
   }, []);
-
-  const login = () => setAuthenticated(true);
-
-  const logout = async () => {
-    await authApi.post('/logout');
-    setAuthenticated(false);
-    setPreAuthToken(null);
-    setUser(null);
-    setActiveFamily(null);
-  };
 
   return (
     <AuthContext.Provider
@@ -79,14 +102,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         user,
         activeFamily,
-        login,
+        fetchAndSetUser,
         logout,
         setActiveFamily,
         preAuthToken,
         setPreAuthToken,
       }}
     >
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

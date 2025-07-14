@@ -14,7 +14,7 @@ const Header: React.FC = () => {
           <h1 className="text-xl font-bold">SaludHogar</h1>
         </div>
         <div className="text-sm opacity-90">
-          Welcome back, {activeFamily?.name}
+          {activeFamily?.name}
         </div>
         <div>
           <LogoutButton />

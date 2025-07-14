@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const LogoutButton: FC = () => {
   const { logout } = useAuth();
   const navigate   = useNavigate();
-
+  
   const handleClick = async () => {
     try {
       await logout();

@@ -7,7 +7,7 @@ import type { AxiosError } from 'axios';
 import { authApi } from '../api/axios';
 
 function Login() {
-  const { login, preAuthToken, setPreAuthToken } = useAuth();
+  const { fetchAndSetUser, preAuthToken, setPreAuthToken } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -32,9 +32,10 @@ function Login() {
         setPreAuthToken(response.data.token);
         setShowTwoFactor(true);
       } else {
-        login();
+        await fetchAndSetUser();
         navigate('/dashboard');
       }
+
     } catch (error: any) {
       console.error('Login error:', error);
       setLoginError(error.response?.data?.message || 'Error al iniciar sesión');
@@ -66,7 +67,7 @@ function Login() {
       
       // Login successful with 2FA
       setPreAuthToken(null);
-      login();
+      fetchAndSetUser();
       navigate('/dashboard');
     } catch (err: any) {
       console.error('2FA verification error:', err);
