@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import type { FamilyMember } from '../types/family';
@@ -32,4 +32,68 @@ export const useFamilyMembers = () => {
   }, [members]);
 
   return { members, memberMap, ...queryInfo };
+};
+
+// Mutations (CREATE, UPDATE, DELETE)
+
+// CREATE
+
+const addFamilyMember = async (
+  { familyId, newMember }: { familyId: number, newMember: Omit<FamilyMember, 'id' | 'family_id'> }
+): Promise<FamilyMember> => {
+  const { data } = await familyApi.post(`/${familyId}/members`, newMember);
+  return data;
+};
+
+export const useAddMember = () => {
+  const queryClient = useQueryClient();
+  const { activeFamily } = useAuth();
+
+  return useMutation({
+    mutationFn: addFamilyMember,
+    onSuccess: () => {
+      // Invalidate the 'familyMembers' query. Marks it stale.
+      // React Query will then automatically refetch it, updating the UI.
+      queryClient.invalidateQueries({ queryKey: ['familyMembers', activeFamily?.id] });
+    },
+  });
+};
+
+// UPDATE
+const updateFamilyMember = async (
+  { familyId, memberId, updatedMember }: { familyId: number, memberId: number, updatedMember: Partial<FamilyMember> }
+): Promise<FamilyMember> => {
+  const { data } = await familyApi.patch(`/${familyId}/members/${memberId}`, updatedMember);
+  return data;
+};
+
+export const useUpdateMember = () => {
+  const queryClient = useQueryClient();
+  const { activeFamily } = useAuth();
+  
+  return useMutation({
+    mutationFn: updateFamilyMember,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['familyMembers', activeFamily?.id] });
+    },
+  });
+};
+
+// DELETE
+const deleteFamilyMember = async (
+  { familyId, memberId }: { familyId: number, memberId: number }
+): Promise<void> => {
+  await familyApi.delete(`/${familyId}/members/${memberId}`);
+};
+
+export const useDeleteMember = () => {
+  const queryClient = useQueryClient();
+  const { activeFamily } = useAuth();
+
+  return useMutation({
+    mutationFn: deleteFamilyMember,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['familyMembers', activeFamily?.id] });
+    },
+  });
 };
