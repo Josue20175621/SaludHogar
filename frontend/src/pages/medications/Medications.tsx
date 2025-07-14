@@ -1,12 +1,35 @@
 import React from 'react';
-import { useOutletContext } from 'react-router-dom';
 import { Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
-
-import type { AppContextType } from '../../App';
+import type { Medication } from '../../types/family';
+import { familyApi } from '../../api/axios';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
+import { useFamilyMembers } from '../../hooks/family';
+
+const fetchMedications = async (familyId: number): Promise<Medication[]> => {
+  const { data } = await familyApi.get(`/${familyId}/medications`);
+  return data;
+};
 
 const Medications: React.FC = () => {
-  const { medications, getMemberName } = useOutletContext<AppContextType>();
+  const { activeFamily } = useAuth();
+  const familyId = activeFamily?.id
+
+  const { data: medications, isLoading: isLoadingMedications } = useQuery<Medication[], Error>({
+    queryKey: ['medications', familyId],
+    queryFn: () => fetchMedications(familyId!),
+    enabled: !!familyId,
+  });
+  const { memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
+
+  if (isLoadingMedications || isLoadingMembers) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -19,12 +42,12 @@ const Medications: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {medications.map(medication => (
+        {medications?.map(medication => (
           <div key={medication.id} className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold">{medication.name}</h3>
-                <p className="text-gray-600">{getMemberName(medication.member_id)}</p>
+                <p className="text-gray-600">{memberMap.get(medication.member_id) || 'Unknown Member'}</p>
               </div>
               <div className="flex space-x-2">
                 <button className="p-2 text-gray-400 hover:text-blue-600" aria-label={`Edit ${medication.name}`}>
@@ -35,7 +58,7 @@ const Medications: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-600">Dosage:</span>

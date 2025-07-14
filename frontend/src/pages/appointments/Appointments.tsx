@@ -1,12 +1,37 @@
 import React from 'react';
-import { useOutletContext } from 'react-router-dom';
+import type { Appointment } from '../../types/family';
 import { Plus, Edit, Trash2, Clock, MapPin } from 'lucide-react';
 
-import type { AppContextType } from '../../App';
 import { formatDateTime } from '../../utils/formatters';
+import { useQuery } from '@tanstack/react-query';
+import { familyApi } from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
+import { useFamilyMembers } from '../../hooks/family';
+
+const fetchAppointments = async (familyId: number): Promise<Appointment[]> => {
+  const { data } = await familyApi.get(`/${familyId}/appointments`);
+  return data;
+};
 
 const Appointments: React.FC = () => {
-  const { appointments, getMemberName } = useOutletContext<AppContextType>();
+  const { activeFamily } = useAuth();
+  const familyId = activeFamily?.id
+
+  const {data: appointments, isLoading: isLoadingAppointments } = useQuery<Appointment[], Error>({
+    queryKey: ['appointments', familyId],
+    queryFn: () => fetchAppointments(familyId!),
+    enabled: !!familyId,
+  });
+
+  const { memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
+
+  if (isLoadingAppointments || isLoadingMembers) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -32,9 +57,9 @@ const Appointments: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {appointments.map(appointment => (
+              {appointments?.map(appointment => (
                 <tr key={appointment.id} className="hover:bg-gray-50">
-                  <td className="p-4 font-medium text-gray-800">{getMemberName(appointment.member_id)}</td>
+                  <td className="p-4 font-medium text-gray-800">{memberMap.get(appointment.member_id) || 'Unknown Member'}</td>
                   <td className="p-4">{appointment.doctor_name}</td>
                   <td className="p-4">
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">

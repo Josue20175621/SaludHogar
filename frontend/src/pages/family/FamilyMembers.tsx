@@ -1,12 +1,24 @@
 import React from 'react';
-import { useOutletContext } from 'react-router-dom';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-
-import type { AppContextType } from '../../App';
 import { calculateAge, formatDate } from '../../utils/formatters';
+import { useFamilyMembers } from '../../hooks/family';
 
 const FamilyMembers: React.FC = () => {
-  const { familyMembers } = useOutletContext<AppContextType>();
+  const { members, isLoading, isError } = useFamilyMembers();
+  // Clean
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+    <div>Error</div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -19,7 +31,7 @@ const FamilyMembers: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {familyMembers.map(member => (
+        {members?.map(member => (
           <div key={member.id} className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div>
