@@ -151,12 +151,24 @@ class MedicationOut(MedicationBase):
     family_id: int
     model_config = ConfigDict(from_attributes=True)
 
-class VaccinationOut(BaseModel):
-    id: int
+class VaccinationBase(BaseModel):
     member_id: int
     vaccine_name: str
     date_administered: date
     administered_by: Optional[str]
     notes: Optional[str]
     
+class VaccinationCreate(VaccinationBase):
+    pass
+
+class VaccinationUpdate(BaseModel):
+    member_id: Optional[int] = None
+    vaccine_name: Optional[str] = None
+    date_administered: Optional[date] = None
+    administered_by: Optional[str] = None
+    notes: Optional[str] = None
+
+class VaccinationOut(VaccinationBase):
+    id: int
+    family_id: int
     model_config = ConfigDict(from_attributes=True)

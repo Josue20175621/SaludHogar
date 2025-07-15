@@ -23,7 +23,7 @@ async def get_all_medications_for_family(
     current_family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db),
     
-    active: Optional[bool] = Query(default=None, description="Filter for active medications (end_date is NULL)"),
+    active: Optional[bool] = Query(default=None, description="Filter for active medications"),
     
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
