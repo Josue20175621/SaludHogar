@@ -12,7 +12,7 @@ import {
   useFamilyMembers,
 } from '../../hooks/appointments';
 
-const AppointmentsPage: React.FC = () => {
+const Appointments: React.FC = () => {
   const { activeFamily } = useAuth();
   const { data: appointments, isLoading: isLoadingAppointments } = useAppointments();
   const { members: familyMembers, memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
@@ -229,4 +229,4 @@ const AppointmentFormModal: React.FC<AppointmentFormModalProps> = ({ isOpen, onC
 };
 
 
-export default AppointmentsPage;
+export default Appointments;
