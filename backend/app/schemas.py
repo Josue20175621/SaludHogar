@@ -89,15 +89,35 @@ class DashboardStats(BaseModel):
     active_medication_count: int
     vaccination_record_count: int
 
-class AppointmentOut(BaseModel):
-    id: int
-    family_id: int
+class AppointmentBase(BaseModel):
     member_id: int
-    appointment_date: datetime
     doctor_name: str
+    appointment_date: datetime
     specialty: Optional[str] = None
     location: Optional[str] = None
     notes: Optional[str] = None
+
+class AppointmentCreate(AppointmentBase):
+    pass
+
+class AppointmentUpdate(BaseModel):
+    member_id: Optional[int] = None
+    doctor_name: Optional[str] = None
+    appointment_date: Optional[datetime] = None
+    specialty: Optional[str] = None
+    location: Optional[str] = None
+    notes: Optional[str] = None
+
+class FamilyMemberSummary(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentOut(AppointmentBase):
+    id: int
+    family_id: int
 
     model_config = ConfigDict(from_attributes=True)
 
