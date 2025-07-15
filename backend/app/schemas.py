@@ -121,8 +121,7 @@ class AppointmentOut(AppointmentBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-class MedicationOut(BaseModel):
-    id: int
+class MedicationBase(BaseModel):
     member_id: int
     name: str
     dosage: str
@@ -132,6 +131,24 @@ class MedicationOut(BaseModel):
     prescribed_by: Optional[str]
     notes: Optional[str]
 
+    model_config = ConfigDict(from_attributes=True)
+
+class MedicationCreate(MedicationBase):
+    pass
+
+class MedicationUpdate(BaseModel):
+    member_id: Optional[int] = None
+    name: Optional[str] = None
+    dosage: Optional[str] = None
+    frequency: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    prescribed_by: Optional[str] = None
+    notes: Optional[str] = None
+
+class MedicationOut(MedicationBase):
+    id: int
+    family_id: int
     model_config = ConfigDict(from_attributes=True)
 
 class VaccinationOut(BaseModel):
