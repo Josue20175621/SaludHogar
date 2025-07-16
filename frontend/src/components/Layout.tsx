@@ -12,13 +12,13 @@ interface NavItem {
 }
 
 const navigationItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: Home },
-  { id: 'members', label: 'Family Members', path: '/dashboard/members', icon: Users },
-  { id: 'appointments', label: 'Appointments', path: '/dashboard/appointments', icon: Calendar },
-  { id: 'medications', label: 'Medications', path: '/dashboard/medications', icon: Pill },
-  { id: 'vaccinations', label: 'Vaccinations', path: '/dashboard/vaccinations', icon: Shield },
-  { id: 'profile', label: 'Profile', path: '/dashboard/profile', icon: User },
-  { id: 'settings', label: 'Settings', path: '/dashboard/settings', icon: Settings }
+  { id: 'dashboard', label: 'Dashboard', path: '/app', icon: Home },
+  { id: 'members', label: 'Family Members', path: '/app/members', icon: Users },
+  { id: 'appointments', label: 'Appointments', path: '/app/appointments', icon: Calendar },
+  { id: 'medications', label: 'Medications', path: '/app/medications', icon: Pill },
+  { id: 'vaccinations', label: 'Vaccinations', path: '/app/vaccinations', icon: Shield },
+  { id: 'profile', label: 'Profile', path: '/app/profile', icon: User },
+  { id: 'settings', label: 'Settings', path: '/app/settings', icon: Settings }
 ];
 
 interface LayoutProps {

@@ -33,7 +33,7 @@ function Login() {
         setShowTwoFactor(true);
       } else {
         await fetchAndSetUser();
-        navigate('/dashboard');
+        navigate('/app');
       }
 
     } catch (error: any) {
@@ -68,7 +68,7 @@ function Login() {
       // Login successful with 2FA
       setPreAuthToken(null);
       fetchAndSetUser();
-      navigate('/dashboard');
+      navigate('/app');
     } catch (err: any) {
       console.error('2FA verification error:', err);
       setTwoFactorCode('');

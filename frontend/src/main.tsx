@@ -53,17 +53,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               {/* --- PROTECTED ROUTES --- */}
               <Route element={<ProtectedRoute />}>
                 {/* The parent route for the entire health tracker */}
-                <Route path="/dashboard" element={<App />}>
+                <Route path="/app" element={<App />}>
                   {/* Child routes. These will render inside App's <Outlet /> */}
-                  <Route index element={<Dashboard />} /> {/* /dashboard */}
-                  <Route path="members" element={<FamilyMembers />} /> {/* /dashboard/members */}
-                  <Route path="appointments" element={<Appointments />} /> {/* /dashboard/appointments */}
-                  <Route path="medications" element={<Medications />} /> {/* /dashboard/medications */}
-                  <Route path="vaccinations" element={<Vaccinations />} /> {/* /dashboard/vaccinations */}
+                  <Route index element={<Dashboard />} /> {/* /app */}
+                  <Route path="members" element={<FamilyMembers />} /> {/* /app/members */}
+                  {/* <Route path="members/:memberId" element={<MemberDetail />} /> */}
+
+                  <Route path="appointments" element={<Appointments />} /> {/* /app/appointments */}
+                  <Route path="medications" element={<Medications />} /> {/* /app/medications */}
+                  <Route path="vaccinations" element={<Vaccinations />} /> {/* /app/vaccinations */}
+
                   {/* <Route path="profile" element={<ProfilePage />} /> */}
-                  {/* <Route path="settings" element={<SettingsPage />} /> */}
+                  {/* <Route path="settings" element={<SettingsPage />} /> /app/settings */}
+                  {/* <Route path="settings/mfa" element={<TwoFactorSetup />} /> /app/settings/mfa */}
                 </Route>
-                {/* <Route path="/settings/mfa" element={<TwoFactorSetup />} /> */}
               </Route>
             </Routes>
           </NotificationProvider>
