@@ -61,6 +61,9 @@ class FamilyMemberOut(BaseModel):
     relation: Optional[str]
     blood_type: Optional[str]
     phone_number: Optional[str]
+    tobacco_use: Optional[str]
+    alcohol_use: Optional[str]
+    occupation: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -137,7 +140,6 @@ class MedicationCreate(MedicationBase):
     pass
 
 class MedicationUpdate(BaseModel):
-    member_id: Optional[int] = None
     name: Optional[str] = None
     dosage: Optional[str] = None
     frequency: Optional[str] = None
@@ -152,17 +154,15 @@ class MedicationOut(MedicationBase):
     model_config = ConfigDict(from_attributes=True)
 
 class VaccinationBase(BaseModel):
-    member_id: int
     vaccine_name: str
     date_administered: date
     administered_by: Optional[str]
     notes: Optional[str]
     
 class VaccinationCreate(VaccinationBase):
-    pass
+    member_id: int
 
 class VaccinationUpdate(BaseModel):
-    member_id: Optional[int] = None
     vaccine_name: Optional[str] = None
     date_administered: Optional[date] = None
     administered_by: Optional[str] = None
@@ -170,5 +170,118 @@ class VaccinationUpdate(BaseModel):
 
 class VaccinationOut(VaccinationBase):
     id: int
+    member_id: int
     family_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AllergyBase(BaseModel):
+    category: str
+    name: str
+    reaction: Optional[str] = None
+    is_severe: bool = False
+
+class AllergyCreate(AllergyBase):
+    member_id: int
+
+class AllergyUpdate(BaseModel):
+    category: Optional[str] = None
+    name: Optional[str] = None
+    reaction: Optional[str] = None
+    is_severe: Optional[bool] = None
+
+class AllergyOut(AllergyBase):
+    id: int
+    member_id: int
+    family_id: int
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ConditionBase(BaseModel):
+    name: str
+    date_diagnosed: Optional[date] = None
+    is_active: bool = True
+    notes: Optional[str] = None
+
+class ConditionCreate(ConditionBase):
+    member_id: int
+
+class ConditionUpdate(BaseModel):
+    name: Optional[str] = None
+    date_diagnosed: Optional[date] = None
+    is_active: Optional[bool] = None
+    notes: Optional[str] = None
+
+class ConditionOut(ConditionBase):
+    id: int
+    member_id: int
+    family_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SurgeryBase(BaseModel):
+    name: str
+    date_of_procedure: date
+    surgeon_name: Optional[str] = None
+    facility_name: Optional[str] = None
+    notes: Optional[str] = None
+
+class SurgeryCreate(SurgeryBase):
+    member_id: int
+
+class SurgeryUpdate(BaseModel):
+    name: Optional[str] = None
+    date_of_procedure: Optional[date] = None
+    surgeon_name: Optional[str] = None
+    facility_name: Optional[str] = None
+    notes: Optional[str] = None
+
+class SurgeryOut(SurgeryBase):
+    id: int
+    member_id: int
+    family_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class HospitalizationBase(BaseModel):
+    reason: str
+    admission_date: date
+    discharge_date: Optional[date] = None
+    facility_name: Optional[str] = None
+    notes: Optional[str] = None
+
+class HospitalizationCreate(HospitalizationBase):
+    member_id: int
+
+class HospitalizationUpdate(BaseModel):
+    reason: Optional[str] = None
+    admission_date: Optional[date] = None
+    discharge_date: Optional[date] = None
+    facility_name: Optional[str] = None
+    notes: Optional[str] = None
+
+class HospitalizationOut(HospitalizationBase):
+    id: int
+    member_id: int
+    family_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class FamilyHistoryConditionBase(BaseModel):
+    condition_name: str
+    relative: str # e.g., "Mother", "Father", "Paternal Grandfather"
+    notes: Optional[str] = None
+
+class FamilyHistoryConditionCreate(FamilyHistoryConditionBase):
+    pass
+
+class FamilyHistoryConditionUpdate(BaseModel):
+    condition_name: Optional[str] = None
+    relative: Optional[str] = None
+    notes: Optional[str] = None
+
+class FamilyHistoryConditionOut(FamilyHistoryConditionBase):
+    id: int
+    family_id: int
+
     model_config = ConfigDict(from_attributes=True)

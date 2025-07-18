@@ -19,6 +19,26 @@ export const useMedications = () => {
   });
 };
 
+// Fetch member medication
+const fetchMemberMedications = async (familyId: number, memberId: number): Promise<Medication[]> => {
+  const url = `/${familyId}/members/${memberId}/medications`;
+  const { data } = await familyApi.get(url);
+  return data;
+};
+
+// Hook for the tab inside MemberDetail
+export const useMemberMedications = (memberId: number) => {
+  const { activeFamily } = useAuth();
+  const familyId = activeFamily?.id;
+
+  return useQuery<Medication[], Error>({
+    queryKey: ['medications', 'member', memberId],
+    queryFn: () => fetchMemberMedications(familyId!, memberId),
+    enabled: !!familyId && !!memberId,
+  });
+};
+
+
 type MedicationFormData = Omit<Medication, 'id' | 'family_id' | 'created_at'>;
 
 // CREATE

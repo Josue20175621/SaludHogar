@@ -1,10 +1,31 @@
-import type { FormEvent } from 'react'
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
-import { calculateAge, formatDate } from '../../utils/formatters';
+import React, {useState} from 'react';
+import { Plus } from 'lucide-react';
+import { calculateAge } from '../../utils/formatters';
 import { useFamilyMembers, useAddMember, useUpdateMember, useDeleteMember } from '../../hooks/family';
 import { useAuth } from '../../context/AuthContext';
+import { Link } from 'react-router-dom';
 import type { FamilyMember } from '../../types/family';
+import { MemberFormModal } from '../../components/MemberFormModal';
+
+export const getRelationBadgeColor = (relation: string): string => {
+  const colorMap: Record<string, string> = {
+    Padre: 'bg-blue-100 text-blue-800',
+    Madre: 'bg-pink-100 text-pink-800',
+    Hijo: 'bg-green-100 text-green-800',
+    Hija: 'bg-green-100 text-green-800',
+    Abuelo: 'bg-yellow-100 text-yellow-800',
+    Abuela: 'bg-yellow-100 text-yellow-800',
+    Hermano: 'bg-purple-100 text-purple-800',
+    Hermana: 'bg-purple-100 text-purple-800',
+    Tío: 'bg-indigo-100 text-indigo-800',
+    Tía: 'bg-indigo-100 text-indigo-800',
+    Primo: 'bg-teal-100 text-teal-800',
+    Prima: 'bg-teal-100 text-teal-800',
+    Otro: 'bg-gray-200 text-gray-800',
+  };
+
+  return colorMap[relation] || 'bg-gray-100 text-gray-700';
+};
 
 type MemberFormData = Omit<FamilyMember, 'id' | 'family_id' | 'created_at' | 'age'>;
 
@@ -68,19 +89,19 @@ const FamilyMembers: React.FC = () => {
   }
 
   if (isError) {
-    return <div className="text-center text-red-500">Error loading family members.</div>;
+    return <div className="text-center text-red-500">Error al cargar los miembros de la familia.</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Family Members</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Miembros de la familia</h2>
         <button
           onClick={handleOpenAddModal}
           className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 flex items-center space-x-2 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Member</span>
+          <span>Agregar miembro</span>
         </button>
       </div>
 
@@ -95,7 +116,7 @@ const FamilyMembers: React.FC = () => {
           />
         ))}
         {members?.length === 0 && (
-          <p className="col-span-full text-center text-gray-500 mt-8">No family members have been added yet.</p>
+          <p className="col-span-full text-center text-gray-500 mt-8">Aun no se han agregado miembros.</p>
         )}
       </div>
 
@@ -119,168 +140,27 @@ interface MemberCardProps {
   isDeleting: boolean;
 }
 
-const MemberCard: React.FC<MemberCardProps> = ({ member, onEdit, onDelete, isDeleting }) => (
-  <div className={`bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-all ${isDeleting ? 'opacity-50' : ''}`}>
-    <div className="flex justify-between items-start mb-4">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900">{member.first_name} {member.last_name}</h3>
-        <p className="text-gray-600">{member.relation}</p>
-      </div>
-      <div className="flex space-x-1">
-        <button onClick={onEdit} className="p-2 text-gray-400 hover:text-cyan-600 rounded-full hover:bg-gray-100 transition-colors" aria-label={`Edit ${member.first_name}`}>
-          <Edit className="w-4 h-4" />
-        </button>
-        <button onClick={onDelete} disabled={isDeleting} className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50" aria-label={`Delete ${member.first_name}`}>
-          {isDeleting ? <div className="w-4 h-4 border-2 border-gray-400 border-t-red-600 rounded-full animate-spin"></div> : <Trash2 className="w-4 h-4" />}
-        </button>
-      </div>
+const MemberCard: React.FC<MemberCardProps> = ({member}) => (
+  <Link 
+    to={`/app/members/${member.id}`} 
+    className="relative block bg-white p-5 rounded-lg shadow-sm border hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+  >
+    {/* Relation badge with color */}
+    <div className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full ${getRelationBadgeColor(member.relation)}`}>
+      {member.relation}
     </div>
-    <div className="space-y-2 text-sm text-gray-700">
-      <p><span className="font-medium text-gray-500">Age:</span> {member.birth_date ? `${calculateAge(member.birth_date)} years` : 'N/A'}</p>
-      <p><span className="font-medium text-gray-500">Gender:</span> {member.gender || 'N/A'}</p>
-      <p><span className="font-medium text-gray-500">Birth Date:</span> {member.birth_date ? formatDate(member.birth_date) : 'N/A'}</p>
-      <p><span className="font-medium text-gray-500">Blood Type:</span> {member.blood_type || 'N/A'}</p>
+
+    <h3 className="text-lg font-bold text-gray-900">
+      {member.first_name} {member.last_name}
+    </h3>
+
+    <div className="mt-2 flex items-center text-sm text-gray-600 space-x-4">
+      <p><span className="font-medium text-gray-500">Género:</span> {member.gender}</p>
+      {member.birth_date && (
+        <p><span className="font-medium text-gray-500">Edad:</span> {calculateAge(member.birth_date)} años</p>
+      )}
     </div>
-  </div>
+  </Link>
 );
-
-interface MemberFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: MemberFormData) => void;
-  initialData: FamilyMember | null;
-  isLoading: boolean;
-}
-
-const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClose, onSubmit, initialData, isLoading }) => {
-  const [formData, setFormData] = useState<MemberFormData>({
-    first_name: initialData?.first_name || '',
-    last_name: initialData?.last_name || '',
-    birth_date: initialData?.birth_date || '',
-    gender: initialData?.gender || '',
-    relation: initialData?.relation || '',
-    blood_type: initialData?.blood_type || '',
-    phone_number: initialData?.phone_number || '',
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6">{initialData ? 'Edit Family Member' : 'Add New Member'}</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">First Name</label>
-            <input type="text" name="first_name" id="first_name" value={formData.first_name} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm" />
-          </div>
-          <div>
-            <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">Last Name</label>
-            <input
-              type="text"
-              name="last_name"
-              id="last_name"
-              value={formData.last_name}
-              onChange={handleChange}
-              required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700">Birth Date</label>
-            <input
-              type="date"
-              name="birth_date"
-              id="birth_date"
-              value={formData.birth_date || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender</label>
-            <select
-              name="gender"
-              id="gender"
-              value={formData.gender || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
-            >
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="relation" className="block text-sm font-medium text-gray-700">Relation</label>
-            <input
-              type="text"
-              name="relation"
-              id="relation"
-              value={formData.relation || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="blood_type" className="block text-sm font-medium text-gray-700">Blood Type</label>
-            <select
-              name="blood_type"
-              id="blood_type"
-              value={formData.blood_type || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
-            >
-              <option value="">Select blood type</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-              <option value="O+">O+</option>
-              <option value="O-">O-</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">Phone Number</label>
-            <input
-              type="tel"
-              name="phone_number"
-              id="phone_number"
-              value={formData.phone_number || ''}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
-              placeholder="e.g. +123456789"
-            />
-          </div>
-          <div className="pt-6 flex justify-end space-x-4">
-            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50">
-              Cancel
-            </button>
-            <button type="submit" disabled={isLoading} className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 disabled:opacity-50 flex items-center">
-              {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>}
-              {initialData ? 'Save Changes' : 'Add Member'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 export default FamilyMembers;

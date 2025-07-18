@@ -11,13 +11,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
-// import TwoFactorSetup from './components/auth/TwoFactorSetup';
+import TwoFactorSetup from './components/auth/TwoFactorSetup';
 import './index.css';
 
 import Landing from './Landing'
 import App from './App';
 import Dashboard from './pages/dashboard/Dashboard';
 import FamilyMembers from './pages/family/FamilyMembers';
+import MemberDetail from './pages/family/MemberDetail';
 import Appointments from './pages/appointments/Appointments';
 import Medications from './pages/medications/Medications';
 import Vaccinations from './pages/vaccinations/Vaccinations';
@@ -57,7 +58,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   {/* Child routes. These will render inside App's <Outlet /> */}
                   <Route index element={<Dashboard />} /> {/* /app */}
                   <Route path="members" element={<FamilyMembers />} /> {/* /app/members */}
-                  {/* <Route path="members/:memberId" element={<MemberDetail />} /> */}
+                  <Route path="members/:memberId" element={<MemberDetail />} />
 
                   <Route path="appointments" element={<Appointments />} /> {/* /app/appointments */}
                   <Route path="medications" element={<Medications />} /> {/* /app/medications */}
@@ -65,8 +66,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
                   {/* <Route path="profile" element={<ProfilePage />} /> */}
                   {/* <Route path="settings" element={<SettingsPage />} /> /app/settings */}
-                  {/* <Route path="settings/mfa" element={<TwoFactorSetup />} /> /app/settings/mfa */}
                 </Route>
+                <Route path="/mfa" element={<TwoFactorSetup />} />
               </Route>
             </Routes>
           </NotificationProvider>

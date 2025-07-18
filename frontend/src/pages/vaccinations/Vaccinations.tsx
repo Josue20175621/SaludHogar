@@ -1,4 +1,4 @@
-import type {FormEvent} from 'react'
+import type { FormEvent } from 'react'
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -52,7 +52,7 @@ const VaccinationsPage: React.FC = () => {
 
   const handleDeleteVaccination = (vaccinationId: number) => {
     if (!activeFamily) return;
-    if (window.confirm('Are you sure you want to delete this vaccination record?')) {
+    if (window.confirm('Estas seguro de que quieres borrar este registro de vacuna?')) {
       deleteVaccinationMutation.mutate({ familyId: activeFamily.id, vaccinationId });
     }
   };
@@ -62,16 +62,16 @@ const VaccinationsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Vaccinations</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Vacunas</h2>
         <button
           onClick={handleOpenAddModal}
           className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center space-x-2 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Vaccination</span>
+          <span>Agregar vacuna</span>
         </button>
       </div>
-      
+
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-4 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
@@ -82,17 +82,17 @@ const VaccinationsPage: React.FC = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
-                  <th className="text-left p-4 font-medium">Patient</th>
-                  <th className="text-left p-4 font-medium">Vaccine</th>
-                  <th className="text-left p-4 font-medium">Date Administered</th>
-                  <th className="text-left p-4 font-medium">Administered By</th>
-                  <th className="text-left p-4 font-medium">Actions</th>
+                  <th className="text-left p-4 font-medium">Miembro</th>
+                  <th className="text-left p-4 font-medium">Vacuna</th>
+                  <th className="text-left p-4 font-medium">Fecha de administración</th>
+                  <th className="text-left p-4 font-medium">Administrado por</th>
+                  <th className="text-left p-4 font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {vaccinations?.map(vaccination => (
                   <tr key={vaccination.id} className="hover:bg-gray-50">
-                    <td className="p-4 font-medium text-gray-800">{memberMap.get(vaccination.member_id) || 'Unknown'}</td>
+                    <td className="p-4 font-medium text-gray-800">{memberMap.get(vaccination.member_id) || 'Desconocido'}</td>
                     <td className="p-4">
                       <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">
                         {vaccination.vaccine_name}
@@ -117,7 +117,7 @@ const VaccinationsPage: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {isModalOpen && (
         <VaccinationFormModal
           isOpen={isModalOpen}
@@ -166,29 +166,29 @@ const VaccinationFormModal: React.FC<VaccinationFormModalProps> = ({ isOpen, onC
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-6">{initialData ? 'Edit Vaccination Record' : 'Add New Vaccination Record'}</h2>
+        <h2 className="text-2xl font-bold mb-6">{initialData ? 'Editar registro de vacuna' : 'Agregar nuevo registro de vacuna'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Patient</label>
+
+          <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Paciente</label>
           <select name="member_id" id="member_id" value={formData.member_id} onChange={handleChange} required className={inputStyle}>
-            <option value="" disabled>Select a family member...</option>
+            <option value="" disabled>Selecciona un miembro de la familia...</option>
             {familyMembers.map(member => <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>)}
           </select>
-          
-          <label htmlFor="vaccine_name" className="block text-sm font-medium text-gray-700">Vaccine Name</label>
+
+          <label htmlFor="vaccine_name" className="block text-sm font-medium text-gray-700">Nombre de la vacuna</label>
           <input type="text" name="vaccine_name" id="vaccine_name" value={formData.vaccine_name} onChange={handleChange} required className={inputStyle} />
-          
-          <label htmlFor="date_administered" className="block text-sm font-medium text-gray-700">Date Administered</label>
+
+          <label htmlFor="date_administered" className="block text-sm font-medium text-gray-700">Fecha de administración</label>
           <input type="date" name="date_administered" id="date_administered" value={formData.date_administered} onChange={handleChange} required className={inputStyle} />
-          
-          <label htmlFor="administered_by" className="block text-sm font-medium text-gray-700">Administered By (Optional)</label>
+
+          <label htmlFor="administered_by" className="block text-sm font-medium text-gray-700">Administrado por (opcional)</label>
           <input type="text" name="administered_by" id="administered_by" value={formData.administered_by} onChange={handleChange} className={inputStyle} />
 
           <div className="pt-6 flex justify-end space-x-4">
-            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Cancel</button>
+            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Cancelar</button>
             <button type="submit" disabled={isLoading} className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center">
               {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>}
-              {initialData ? 'Save Changes' : 'Add Record'}
+              {initialData ? 'Guardar cambios' : 'Agregar vacuna'}
             </button>
           </div>
         </form>

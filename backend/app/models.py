@@ -82,6 +82,25 @@ class Family(Base):
         back_populates="family", cascade="all, delete-orphan"
     )
 
+    allergies: Mapped[List["Allergy"]] = relationship(
+        back_populates="family", cascade="all, delete-orphan"
+    )
+
+    conditions: Mapped[List["Condition"]] = relationship(
+        back_populates="family", cascade="all, delete-orphan"
+    )
+
+    surgeries: Mapped[List["Surgery"]] = relationship(
+        back_populates="family", cascade="all, delete-orphan"
+    )
+
+    hospitalizations: Mapped[List["Hospitalization"]] = relationship(
+        back_populates="family", cascade="all, delete-orphan"
+    )
+    family_history: Mapped[List["FamilyHistoryCondition"]] = relationship(
+        back_populates="family", cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         return f"<Family id={self.id} name={self.name!r}>"
 
@@ -116,6 +135,9 @@ class FamilyMember(Base):
     relation: Mapped[Optional[str]] = mapped_column(String(50))
     blood_type: Mapped[Optional[str]] = mapped_column(String(5))
     phone_number: Mapped[Optional[str]] = mapped_column(String(20))
+    tobacco_use: Mapped[Optional[str]] = mapped_column(String(100))
+    alcohol_use: Mapped[Optional[str]] = mapped_column(String(100))
+    occupation: Mapped[Optional[str]] = mapped_column(String(255))
 
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
@@ -136,8 +158,59 @@ class FamilyMember(Base):
         back_populates="member", cascade="all, delete-orphan"
     )
 
+    allergies: Mapped[List["Allergy"]] = relationship(
+        back_populates="member", cascade="all, delete-orphan"
+    )
+    
+    conditions: Mapped[List["Condition"]] = relationship(
+        back_populates="member", cascade="all, delete-orphan"
+    )
+
+    surgeries: Mapped[List["Surgery"]] = relationship(
+        back_populates="member", cascade="all, delete-orphan"
+    )
+
+    hospitalizations: Mapped[List["Hospitalization"]] = relationship(
+        back_populates="member", cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         return f"<FamilyMember id={self.id} first_name={self.first_name!r} last_name={self.last_name!r}>"
+
+class FamilyHistoryCondition(Base):
+    __tablename__ = "family_history_conditions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
+
+    condition_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    relative: Mapped[str] = mapped_column(String(100), nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    
+    
+    family: Mapped["Family"] = relationship(back_populates="family_history")
+
+class Hospitalization(Base):
+    __tablename__ = "hospitalizations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
+    member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
+
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    admission_date: Mapped[date] = mapped_column(Date, nullable=False)
+    discharge_date: Mapped[Optional[date]] = mapped_column(Date)
+    
+    facility_name: Mapped[Optional[str]] = mapped_column(String(255))
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    
+    # --- Relationships ---
+    family: Mapped["Family"] = relationship(back_populates="hospitalizations")
+    member: Mapped["FamilyMember"] = relationship(back_populates="hospitalizations")
 
 class Appointment(Base):
     __tablename__ = "appointments"
@@ -222,3 +295,58 @@ class Vaccination(Base):
 
     def __repr__(self) -> str:
         return f"<Vaccination id={self.id} name='{self.vaccine_name}' member_id={self.member_id}>"
+
+class Allergy(Base):
+    __tablename__ = "allergies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
+    member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
+    
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    reaction: Mapped[Optional[str]] = mapped_column(Text)
+    is_severe: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    
+    # Relationships
+    family: Mapped["Family"] = relationship(back_populates="allergies")
+    member: Mapped["FamilyMember"] = relationship(back_populates="allergies")
+
+class Condition(Base):
+    __tablename__ = "conditions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
+    member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
+    
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    date_diagnosed: Mapped[Optional[date]] = mapped_column(Date)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+
+    # Relationships
+    family: Mapped["Family"] = relationship(back_populates="conditions")
+    member: Mapped["FamilyMember"] = relationship(back_populates="conditions")
+
+class Surgery(Base):
+    __tablename__ = "surgeries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
+    member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
+    
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    date_of_procedure: Mapped[date] = mapped_column(Date, nullable=False)
+    surgeon_name: Mapped[Optional[str]] = mapped_column(String(255))
+    facility_name: Mapped[Optional[str]] = mapped_column(String(255))
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+
+    # Relationships
+    family: Mapped["Family"] = relationship(back_populates="surgeries")
+    member: Mapped["FamilyMember"] = relationship(back_populates="surgeries")

@@ -5,7 +5,7 @@ import { Plus, Edit, Trash2, Clock } from 'lucide-react';
 import { formatDateTime } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import {
-  useAppointments,
+  useFamilyAppointments,
   useAddAppointment,
   useUpdateAppointment,
   useDeleteAppointment,
@@ -14,7 +14,7 @@ import {
 
 const Appointments: React.FC = () => {
   const { activeFamily } = useAuth();
-  const { data: appointments, isLoading: isLoadingAppointments } = useAppointments();
+  const { data: appointments, isLoading: isLoadingAppointments } = useFamilyAppointments();
   const { members: familyMembers, memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
 
   const [isModalOpen, setIsModalOpen] = useState(false);

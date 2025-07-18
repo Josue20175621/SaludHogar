@@ -68,14 +68,7 @@ const Medications: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Medications</h2>
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Medication</span>
-        </button>
+        <h2 className="text-2xl font-bold text-gray-800">Medicamentos</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -83,24 +76,13 @@ const Medications: React.FC = () => {
           <MedicationCard
             key={medication.id}
             medication={medication}
-            memberName={memberMap.get(medication.member_id) || 'Unknown'}
+            memberName={memberMap.get(medication.member_id) || 'Desconocido'}
             onEdit={() => handleOpenEditModal(medication)}
             onDelete={() => handleDeleteMedication(medication.id)}
             isDeleting={deleteMedicationMutation.isPending && deleteMedicationMutation.variables?.medicationId === medication.id}
           />
         ))}
       </div>
-
-      {isModalOpen && (
-        <MedicationFormModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSubmit={handleFormSubmit}
-          initialData={editingMedication}
-          familyMembers={familyMembers || []}
-          isLoading={addMedicationMutation.isPending || updateMedicationMutation.isPending}
-        />
-      )}
     </div>
   );
 };
@@ -140,39 +122,31 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, memberName,
           <h3 className="text-lg font-bold text-gray-900">{medication.name}</h3>
           <p className="text-sm text-gray-600">{memberName}</p>
         </div>
-        <div className="flex space-x-1">
-          <button onClick={onEdit} className="p-2 text-gray-400 hover:text-cyan-600 rounded-full hover:bg-gray-100 transition-colors" aria-label={`Edit ${medication.name}`}>
-            <Edit className="w-5 h-5" />
-          </button>
-          <button onClick={onDelete} disabled={isDeleting} className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 disabled:opacity-50 transition-colors" aria-label={`Delete ${medication.name}`}>
-            {isDeleting ? <div className="w-5 h-5 border-2 border-gray-400 border-t-red-600 rounded-full animate-spin"></div> : <Trash2 className="w-5 h-5" />}
-          </button>
-        </div>
       </div>
 
-      {/* Details */}
+      {/* Detalles */}
       <div className="space-y-3 text-sm">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Dosage:</span>
+          <span className="font-medium text-gray-500">Dosis:</span>
           <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">{medication.dosage}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Frequency:</span>
+          <span className="font-medium text-gray-500">Frecuencia:</span>
           <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">{medication.frequency}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Start Date:</span>
-          <span className="text-gray-700">{medication.start_date ? formatDate(medication.start_date) : 'N/A'}</span>
+          <span className="font-medium text-gray-500">Fecha de inicio:</span>
+          <span className="text-gray-700">{medication.start_date ? formatDate(medication.start_date) : 'N/D'}</span>
         </div>
         {medication.end_date && (
           <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-500">End Date:</span>
+            <span className="font-medium text-gray-500">Fecha de finalización:</span>
             <span className="text-gray-700">{formatDate(medication.end_date)}</span>
           </div>
         )}
         <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Prescribed by:</span>
-          <span className="text-gray-700">{medication.prescribed_by || 'N/A'}</span>
+          <span className="font-medium text-gray-500">Prescrito por:</span>
+          <span className="text-gray-700">{medication.prescribed_by || 'N/D'}</span>
         </div>
       </div>
 
@@ -181,7 +155,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, memberName,
           {isActive() && (
             <div className="flex items-center space-x-2 text-green-600 mb-2">
               <AlertCircle className="w-4 h-4" />
-              <span className="text-sm font-semibold">Currently Active</span>
+              <span className="text-sm font-semibold">Actualmente activo</span>
             </div>
           )}
           {medication.notes && (
@@ -246,66 +220,59 @@ const MedicationFormModal: React.FC<MedicationFormModalProps> = ({ isOpen, onClo
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Patient Select Dropdown */}
+          {/* Menú desplegable de paciente */}
           <div>
-            <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Patient</label>
+            <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Paciente</label>
             <select name="member_id" id="member_id" value={formData.member_id} onChange={handleChange} required className={inputStyle}>
-              <option value="" disabled>Select a family member...</option>
+              <option value="" disabled>Selecciona un miembro de la familia...</option>
               {familyMembers.map(member => (
                 <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>
               ))}
             </select>
           </div>
 
-          {/* Medication Name Input */}
+          {/* Campo para nombre del medicamento */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Medication Name</label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre del medicamento</label>
             <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className={inputStyle} />
           </div>
 
-          {/* Dosage and Frequency side-by-side */}
+          {/* Dosis y frecuencia en paralelo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="dosage" className="block text-sm font-medium text-gray-700">Dosage (e.g., 10mg)</label>
+              <label htmlFor="dosage" className="block text-sm font-medium text-gray-700">Dosis (ej., 10mg)</label>
               <input type="text" name="dosage" id="dosage" value={formData.dosage} onChange={handleChange} required className={inputStyle} />
             </div>
             <div>
-              <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">Frequency (e.g., Once daily)</label>
+              <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">Frecuencia (ej., Una vez al día)</label>
               <input type="text" name="frequency" id="frequency" value={formData.frequency} onChange={handleChange} required className={inputStyle} />
             </div>
           </div>
 
-          {/* Start and End Date side-by-side */}
+          {/* Fechas de inicio y fin en paralelo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">Start Date</label>
+              <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">Fecha de inicio</label>
               <input type="date" name="start_date" id="start_date" value={formData.start_date} onChange={handleChange} className={inputStyle} />
             </div>
             <div>
-              <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">End Date (Optional)</label>
+              <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">Fecha de finalización (opcional)</label>
               <input type="date" name="end_date" id="end_date" value={formData.end_date} onChange={handleChange} className={inputStyle} />
             </div>
           </div>
 
+          {/* Campo para médico que lo recetó */}
           <div>
-            <label htmlFor="prescribed_by" className="block text-sm font-medium text-gray-700">Prescribed By</label>
+            <label htmlFor="prescribed_by" className="block text-sm font-medium text-gray-700">Prescrito por</label>
             <input type="text" name="prescribed_by" id="prescribed_by" value={formData.prescribed_by} onChange={handleChange} className={inputStyle} />
           </div>
 
+          {/* Campo de notas */}
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notes</label>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notas</label>
             <textarea name="notes" id="notes" value={formData.notes} onChange={handleChange} rows={3} className={inputStyle}></textarea>
           </div>
 
-          <div className="pt-6 flex justify-end space-x-4">
-            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors">
-              Cancel
-            </button>
-            <button type="submit" disabled={isLoading} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center transition-colors">
-              {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>}
-              {initialData ? 'Save Changes' : 'Add Medication'}
-            </button>
-          </div>
         </form>
       </div>
     </div>

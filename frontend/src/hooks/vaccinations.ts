@@ -19,6 +19,26 @@ export const useVaccinations = () => {
   });
 };
 
+// Fetch member medication
+const fetchMemberVaccinations = async (familyId: number, memberId: number): Promise<Vaccination[]> => {
+  // Uses the new, more RESTful URL
+  const url = `/${familyId}/members/${memberId}/vaccinations`;
+  const { data } = await familyApi.get(url);
+  return data;
+};
+
+// Hook for the tab inside MemberDetail
+export const useMemberVaccinations = (memberId: number) => {
+  const { activeFamily } = useAuth();
+  const familyId = activeFamily?.id;
+
+  return useQuery<Vaccination[], Error>({
+    queryKey: ['vaccinations', 'member', memberId],
+    queryFn: () => fetchMemberVaccinations(familyId!, memberId),
+    enabled: !!familyId && !!memberId,
+  });
+};
+
 type VaccinationFormData = Omit<Vaccination, 'id' | 'family_id' | 'created_at'>;
 
 // CREATE

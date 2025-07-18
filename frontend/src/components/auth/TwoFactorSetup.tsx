@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import QRCodeSVG from 'react-qr-code';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Check, ArrowLeft, Smartphone } from 'lucide-react';
 import { authApi } from '../../api/axios';
 
@@ -15,6 +16,7 @@ const TwoFactorSetup = () => {
   const [success, setSuccess] = useState('');
   const [qrData, setQrData] = useState<TOTPSetup | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
+  const navigate = useNavigate();
 
   const generateQRCode = async () => {
     setLoading(true);
@@ -78,7 +80,7 @@ const TwoFactorSetup = () => {
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
         {/* Back Button */}
         <button 
-          onClick={() => window.history.back()}
+          onClick={() => navigate('/app')}
           className="absolute top-6 left-6 flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors duration-200"
         >
           <ArrowLeft className="w-5 h-5" />

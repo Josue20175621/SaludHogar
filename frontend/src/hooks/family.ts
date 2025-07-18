@@ -13,7 +13,6 @@ export const useFamilyMembers = () => {
   const { activeFamily } = useAuth();
   const familyId = activeFamily?.id;
 
-  // Fetch the members using useQuery
   const { data: members, ...queryInfo } = useQuery<FamilyMember[], Error>({
     queryKey: ['familyMembers', familyId],
     queryFn: () => fetchFamilyMembers(familyId!),
@@ -23,15 +22,20 @@ export const useFamilyMembers = () => {
   // Create a memoized map for fast lookups. This is the replacement for getMemberName.
   const memberMap = useMemo(() => {
     if (!members) return new Map<number, string>();
-    
-    const newMap = new Map<number, string>();
-    for (const member of members) {
-      newMap.set(member.id, `${member.first_name} ${member.last_name}`);
-    }
-    return newMap;
+    const m = new Map<number, string>();
+    members.forEach(x => m.set(x.id, `${x.first_name} ${x.last_name}`));
+    return m;
   }, [members]);
 
-  return { members, memberMap, ...queryInfo };
+  // A map from id -> full member object
+  const memberById = useMemo(() => {
+    if (!members) return new Map<number, FamilyMember>();
+    const m = new Map<number, FamilyMember>();
+    members.forEach(x => m.set(x.id, x));
+    return m;
+  }, [members]);
+
+  return { members, memberMap, memberById, ...queryInfo };
 };
 
 // Mutations (CREATE, UPDATE, DELETE)
@@ -95,5 +99,22 @@ export const useDeleteMember = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['familyMembers', activeFamily?.id] });
     },
+  });
+};
+
+// Get member details
+const fetchMemberDetails = async (familyId: number, memberId: string | number): Promise<FamilyMember> => {
+  const { data } = await familyApi.get(`/${familyId}/members/${memberId}`);
+  return data;
+};
+
+export const useMemberDetails = (memberId?: string) => {
+  const { activeFamily } = useAuth();
+  const familyId = activeFamily?.id;
+
+  return useQuery<FamilyMember, Error>({
+    queryKey: ['familyMember', familyId, memberId],
+    queryFn: () => fetchMemberDetails(familyId!, memberId!),
+    enabled: !!familyId && !!memberId,
   });
 };

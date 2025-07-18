@@ -31,15 +31,14 @@ async def get_all_medications_for_family(
     sort_order: str = Query(default="desc", description="Sort order: 'asc' or 'desc'")
 ):
     stmt = select(Medication).where(Medication.family_id == current_family.id)
+    today = func.current_date()
 
     if active is True:
-        today = func.current_date()
         stmt = stmt.where(
             Medication.start_date <= today,
             or_(Medication.end_date == None, Medication.end_date >= today)
         )
     elif active is False:
-        today = func.current_date()
         stmt = stmt.where(
             or_(Medication.start_date > today, Medication.end_date < today)
         )
