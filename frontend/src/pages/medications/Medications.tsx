@@ -155,7 +155,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, memberName,
           {isActive() && (
             <div className="flex items-center space-x-2 text-green-600 mb-2">
               <AlertCircle className="w-4 h-4" />
-              <span className="text-sm font-semibold">Actualmente activo</span>
+              <span className="text-sm font-semibold">Activo</span>
             </div>
           )}
           {medication.notes && (

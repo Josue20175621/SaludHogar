@@ -98,7 +98,7 @@ const FamilyMembers: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-800">Miembros de la familia</h2>
         <button
           onClick={handleOpenAddModal}
-          className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 flex items-center space-x-2 transition-colors"
+          className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 flex items-center space-x-2 transition-colors cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           <span>Agregar miembro</span>

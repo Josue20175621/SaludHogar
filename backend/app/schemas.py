@@ -24,6 +24,9 @@ class FamilyMemberForm(BaseModel):
     relation: Optional[str]
     blood_type: Optional[str]
     phone_number: Optional[str]
+    tobacco_use: Optional[str]
+    alcohol_use: Optional[str]
+    occupation: Optional[str]
 
 class FamilyMemberUpdateForm(BaseModel):
     first_name: Optional[str] = None
@@ -283,5 +286,18 @@ class FamilyHistoryConditionUpdate(BaseModel):
 class FamilyHistoryConditionOut(FamilyHistoryConditionBase):
     id: int
     family_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class MedicalReport(BaseModel):
+    personal_information: FamilyMemberOut
+    allergies: List[AllergyOut]
+    current_medications: List[MedicationOut]
+    vaccination_history: List[VaccinationOut]
+    chronic_conditions: List[ConditionOut]
+    surgical_history: List[SurgeryOut]
+    hospitalizations: List[HospitalizationOut]
+    family_medical_history: List[FamilyHistoryConditionOut]
+    report_generated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

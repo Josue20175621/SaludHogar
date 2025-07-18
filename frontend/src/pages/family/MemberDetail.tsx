@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { calculateAge } from '../../utils/formatters';
 import { useUpdateMember, useDeleteMember, useMemberDetails } from '../../hooks/family';
-import { Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Edit, Trash2, ArrowLeft, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { MemberFormModal, type MemberFormData } from '../../components/MemberFormModal';
 
@@ -18,6 +18,7 @@ import { FamilyHistoryConditions } from './FamilyHistoryCondition';
 import { MemberAppointments } from './MemberAppointments';
 import { MemberVaccinations } from './MemberVaccinations';
 import { MemberMedications } from './MemberMedications';
+import { familyApi } from '../../api/axios';
 
 type ActiveTab = 'profile' | 'conditions' | 'allergies' | 'surgeries' | 'hospitalizations' | 'appointments' | 'medications' | 'vaccinations' | 'familyhistorycondition';
 
@@ -37,6 +38,8 @@ const MemberDetail: React.FC = () => {
   // Use the mutation hooks
   const updateMemberMutation = useUpdateMember();
   const deleteMemberMutation = useDeleteMember();
+
+
 
   const handleUpdateSubmit = (formData: MemberFormData) => {
     if (!activeFamily || !memberId) return;
@@ -63,6 +66,42 @@ const MemberDetail: React.FC = () => {
           },
         }
       );
+    }
+  };
+
+  const handleReport = async () => {
+    try {
+      const response = await familyApi.get(`/${activeFamily?.id}/members/${memberId}/medical-report/pdf`, {
+        responseType: 'blob', // Required for binary PDF data
+        headers: {
+          Accept: 'application/pdf', // Override default JSON header
+        },
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+
+      // Optional: extract filename from headers
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'informe_medico.pdf';
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      // Trigger the download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
     }
   };
 
@@ -95,7 +134,6 @@ const MemberDetail: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* --- Page Header with Actions --- */}
       <div className="flex justify-between items-center">
         <div>
           <Link to="/app/members" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-2">
@@ -107,8 +145,15 @@ const MemberDetail: React.FC = () => {
           <p><span className="font-medium text-gray-500">Edad:</span> {member.birth_date ? `${calculateAge(member.birth_date)} años` : 'N/A'}</p>
         </div>
 
-        {/* <div className="flex space-x-2">
+        <div className="flex space-x-2">
           <button
+            onClick={handleReport}
+            className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-cyan-700 flex items-center gap-2 transition-all duration-200 cursor-pointer"
+          >
+            <FileText className="w-4 h-4" />
+            Generar informe médico
+          </button>
+          {/* <button
             onClick={() => setIsEditModalOpen(true)}
             className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2"
           >
@@ -120,8 +165,8 @@ const MemberDetail: React.FC = () => {
             className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
           >
             <Trash2 className="w-4 h-4" /> Delete
-          </button>
-        </div> */}
+          </button> */}
+        </div>
       </div>
 
       <Tabs>
@@ -142,7 +187,7 @@ const MemberDetail: React.FC = () => {
         {activeTab === 'conditions' && <Conditions memberId={memberId!} />}
         {activeTab === 'surgeries' && <Surgeries memberId={memberId!} />}
         {activeTab === 'hospitalizations' && <Hospitalizations memberId={memberId!} />}
-        {activeTab === 'familyhistorycondition' && <FamilyHistoryConditions/>}
+        {activeTab === 'familyhistorycondition' && <FamilyHistoryConditions />}
         {activeTab === 'appointments' && <MemberAppointments memberId={memberId!} />}
         {activeTab === 'medications' && <MemberMedications memberId={memberId!} />}
         {activeTab === 'vaccinations' && <MemberVaccinations memberId={memberId!} />}
