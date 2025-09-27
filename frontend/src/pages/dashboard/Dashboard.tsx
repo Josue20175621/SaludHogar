@@ -13,8 +13,8 @@ const fetchDashboardStats = async (familyId: number): Promise<DashboardStats> =>
     return data;
 };
 
-const fetchRecentAppointments = async (familyId: number): Promise<Appointment[]> => {
-    const { data } = await familyApi.get(`/${familyId}/appointments?limit=3&sort_by=appointment_date&sort_order=asc`);
+const fetchFutureAppointments = async (familyId: number): Promise<Appointment[]> => {
+    const { data } = await familyApi.get(`/${familyId}/appointments?limit=3&sort_order=asc&future_appointments=true`);
     return data;
 };
 
@@ -36,7 +36,7 @@ const Dashboard: React.FC = () => {
 
     const { data: recentAppointments = [], isLoading: isLoadingAppointments } = useQuery({
         queryKey: ['recentAppointments', familyId],
-        queryFn: () => fetchRecentAppointments(familyId!),
+        queryFn: () => fetchFutureAppointments(familyId!),
         enabled: !!familyId,
     });
 
@@ -108,11 +108,20 @@ const Dashboard: React.FC = () => {
                     <h3 className="text-lg font-semibold mb-4">Proximas citas</h3>
                     <div className="space-y-3">
                         {recentAppointments?.length > 0 ? (
-                            recentAppointments.slice(0, 3).map(appointment => (
-                                <div
+                            recentAppointments.slice(0, 3).map(appointment => {
+                                const member = memberById.get(appointment.member_id);
+                                return (
+                                    <div
                                     key={appointment.id}
-                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                    className="relative flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                                 >
+                                    {member?.relation && (
+                                        <div
+                                            className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full ${getRelationBadgeColor(member.relation)}`}
+                                        >
+                                            {member.relation}
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="font-medium">
                                             {memberMap.get(appointment.member_id) || 'Cargando...'}
@@ -126,7 +135,8 @@ const Dashboard: React.FC = () => {
                                     </div>
                                     <Calendar className="w-5 h-5 text-gray-400" />
                                 </div>
-                            ))
+                                );
+                            })
                         ) : (
                             <p className="text-sm text-gray-500">No hay proximas citas</p>
                         )}

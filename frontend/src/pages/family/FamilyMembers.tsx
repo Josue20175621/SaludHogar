@@ -96,13 +96,13 @@ const FamilyMembers: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Miembros de la familia</h2>
-        <button
+        {/* <button
           onClick={handleOpenAddModal}
           className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 flex items-center space-x-2 transition-colors cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           <span>Agregar miembro</span>
-        </button>
+        </button> */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -146,7 +146,7 @@ const MemberCard: React.FC<MemberCardProps> = ({member}) => (
     className="relative block bg-white p-5 rounded-lg shadow-sm border hover:shadow-md hover:-translate-y-1 transition-all duration-200"
   >
     {/* Relation badge with color */}
-    <div className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full ${getRelationBadgeColor(member.relation)}`}>
+    <div className={`absolute top-3 right-3 text-base font-semibold px-3 py-1 rounded-full ${getRelationBadgeColor(member.relation)}`}>
       {member.relation}
     </div>
 

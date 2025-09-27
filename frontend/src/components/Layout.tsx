@@ -15,7 +15,7 @@ const navigationItems: NavItem[] = [
   { id: 'dashboard', label: 'Resumen', path: '/app', icon: Home },
   { id: 'members', label: 'Miembros', path: '/app/members', icon: Users },
   { id: 'vaccinations', label: 'Vacunas', path: '/app/vaccinations', icon: Shield },
-  // { id: 'appointments', label: 'Citas medicas', path: '/app/appointments', icon: Calendar },
+  { id: 'appointments', label: 'Citas medicas', path: '/app/appointments', icon: Calendar },
   { id: 'medications', label: 'Medicamentos', path: '/app/medications', icon: Pill },
   // { id: 'profile', label: 'Profile', path: '/app/profile', icon: User },
   // { id: 'settings', label: 'Settings', path: '/app/settings', icon: Settings }

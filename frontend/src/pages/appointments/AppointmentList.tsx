@@ -29,32 +29,41 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isLoadi
       <table className="w-full text-sm">
         <thead className="bg-gray-50 text-gray-600">
           <tr>
-            <th className="text-left p-4 font-medium">Paciente</th>
             <th className="text-left p-4 font-medium">Doctor</th>
             <th className="text-left p-4 font-medium">Especialidad</th>
             <th className="text-left p-4 font-medium">Fecha y Hora</th>
+            <th className='text-left p-4 font-medium'>Lugar</th>
+            <th className='text-left p-4 font-medium'>Notas</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {appointments.map(appointment => (
-            <tr key={appointment.id} className="hover:bg-gray-50">
-              <td className="p-4 font-medium text-gray-800">
-                {memberMap.get(appointment.member_id) || 'Desconocido'}
-              </td>
-              <td className="p-4">{appointment.doctor_name}</td>
-              <td className="p-4">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  {appointment.specialty}
-                </span>
-              </td>
-              <td className="p-4">
-                <div className="flex items-center space-x-2 text-gray-700">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span>{formatDateTime(appointment.appointment_date)}</span>
-                </div>
-              </td>
-            </tr>
-          ))}
+          {appointments.map(appointment => {
+            const isUpcoming = new Date(appointment.appointment_date) > new Date();
+
+            return (
+              <tr key={appointment.id} className="hover:bg-gray-50">
+                <td className="p-4">{appointment.doctor_name}</td>
+                <td className="p-4">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                    {appointment.specialty}
+                  </span>
+                </td>
+                <td className="p-4">
+                  <div className="flex items-center space-x-2 text-gray-700">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span>{formatDateTime(appointment.appointment_date)}</span>
+                  </div>
+                  {isUpcoming ? (
+                    <span className="mt-1 inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                      Próxima
+                    </span>
+                  ) : null}
+                </td>
+                <td className="p-4">{appointment.location}</td>
+                <td className="p-4">{appointment.notes}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

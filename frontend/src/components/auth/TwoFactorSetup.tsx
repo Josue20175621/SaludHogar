@@ -114,7 +114,7 @@ const TwoFactorSetup = () => {
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-emerald-800 mb-2">Antes de comenzar:</h3>
               <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• Instala una aplicación autenticadora (Google Authenticator, Authy, etc.)</li>
+                <li>• Instala una aplicación autenticadora (Google Authenticator, Authy, 2FAS Auth, etc.)</li>
                 <li>• Asegúrate de que tu dispositivo esté listo para escanear un código QR</li>
               </ul>
             </div>
@@ -283,10 +283,10 @@ const TwoFactorSetup = () => {
 
               {/* Continue Button */}
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => navigate('/app')}
                 className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                Continuar al Dashboard
+                Continuar a la aplicacion
               </button>
             </div>
           </div>

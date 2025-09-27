@@ -19,16 +19,17 @@ async def get_all_appointments_for_family(
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     sort_by: Optional[str] = Query(default="appointment_date"),
-    sort_order: Optional[str] = Query(default="desc")
+    sort_order: Optional[str] = Query(default="desc"),
+    future_appointments: bool = Query(default=False, description="Set to true to only fetch future appointments")
 ):
-    # only this family and only future ones
     stmt = (
         select(Appointment)
         .where(
-            Appointment.family_id == current_family.id,
-            Appointment.appointment_date >= func.now()
+            Appointment.family_id == current_family.id
         )
     )
+
+    if future_appointments: stmt = stmt.where(Appointment.appointment_date >= func.now())
 
     # apply sorting
     sort_column = getattr(Appointment, sort_by, None)

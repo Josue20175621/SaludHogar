@@ -27,7 +27,7 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ member }) => {
           Información personal
         </h3>
         <p className="mt-1 max-w-2xl text-sm text-gray-500">
-          Perfil básico, datos de contacto y antecedentes social.
+          Perfil básico, datos de contacto y antecedentes sociales.
         </p>
       </div>
       <div className="border-t border-gray-200 px-4 py-5 sm:px-6">

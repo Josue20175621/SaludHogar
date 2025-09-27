@@ -6,7 +6,7 @@ import type { Appointment } from '../types/family';
 export { useFamilyMembers } from './family';
 
 const fetchFamilyAppointments = async (familyId: number): Promise<Appointment[]> => {
-  const { data } = await familyApi.get(`/${familyId}/appointments?sort_by=appointment_date&sort_order=asc`);
+  const { data } = await familyApi.get(`/${familyId}/appointments?sort_order=asc`);
   return data;
 };
 

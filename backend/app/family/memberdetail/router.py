@@ -190,7 +190,7 @@ async def generate_medical_report_pdf(
         "SectionHeader",
         parent=styles["Heading2"],
         fontSize=14,
-        textColor=colors.blue,
+        textColor=colors.coral,
         spaceBefore=18,
         spaceAfter=6,
     )
@@ -286,7 +286,7 @@ async def generate_medical_report_pdf(
     elems.append(Spacer(1, 24))
     
     # Current Medications Section
-    elems.append(Paragraph(f"MEDICAMENTOS ACTUALES ({len(report.current_medications)} en total)", section_style))
+    elems.append(Paragraph(f"MEDICAMENTOS ACTUALES", section_style))
 
     if report.current_medications:
         med_data = [["Medicamento", "Dosis", "Frecuencia", "Prescrito por"]]
@@ -314,7 +314,7 @@ async def generate_medical_report_pdf(
         elems.append(Paragraph("No hay medicamentos actuales registrados.", normal))
 
     # Sección de Historial de Vacunación
-    elems.append(Paragraph(f"HISTORIAL DE VACUNACIÓN ({len(report.vaccination_history)} en total)", section_style))
+    elems.append(Paragraph(f"HISTORIAL DE VACUNACIÓN", section_style))
 
     if report.vaccination_history:
         vax_data = [["Vacuna", "Fecha de Administración", "Administrado Por"]]
@@ -343,7 +343,7 @@ async def generate_medical_report_pdf(
     elems.append(Spacer(1, 20))
 
     # Sección de Condiciones
-    elems.append(Paragraph(f"CONDICIONES ({len(report.chronic_conditions)} en total)", section_style))
+    elems.append(Paragraph(f"CONDICIONES", section_style))
     """
     styles = getSampleStyleSheet()
     table_cell_style = styles["Normal"]
@@ -362,14 +362,6 @@ async def generate_medical_report_pdf(
                 status,
                 condition.notes or "Ninguna"
             ])
-            """
-            condition_data.append([
-                Paragraph(condition.name, table_cell_style),
-                Paragraph(str(condition.date_diagnosed), table_cell_style),
-                Paragraph(status, table_cell_style),
-                Paragraph(condition.notes or "Ninguna", table_cell_style)
-            ])
-            """
         
         condition_table = Table(condition_data)
         condition_table.setStyle(TableStyle([
@@ -389,7 +381,7 @@ async def generate_medical_report_pdf(
     elems.append(Spacer(1, 20))
 
     # Sección de Historial Quirúrgico
-    elems.append(Paragraph(f"HISTORIAL QUIRÚRGICO ({len(report.surgical_history)} en total)", section_style))
+    elems.append(Paragraph(f"HISTORIAL QUIRÚRGICO", section_style))
 
     if report.surgical_history:
         surgery_data = [["Procedimiento", "Fecha", "Cirujano", "Centro Médico"]]
@@ -419,7 +411,7 @@ async def generate_medical_report_pdf(
     elems.append(Spacer(1, 20))
 
     # Sección de Hospitalizaciones
-    elems.append(Paragraph(f"HOSPITALIZACIONES ({len(report.hospitalizations)} en total)", section_style))
+    elems.append(Paragraph(f"HOSPITALIZACIONES", section_style))
 
     if report.hospitalizations:
         hosp_data = [["Motivo", "Fecha de Ingreso", "Fecha de Alta", "Centro Médico"]]
@@ -449,7 +441,7 @@ async def generate_medical_report_pdf(
     elems.append(Spacer(1, 20))
 
     # Sección de Historial Médico Familiar
-    elems.append(Paragraph(f"HISTORIAL MÉDICO FAMILIAR ({len(report.family_medical_history)} en total)", section_style))
+    elems.append(Paragraph(f"HISTORIAL MÉDICO FAMILIAR", section_style))
 
     if report.family_medical_history:
         fh_data = [["Condición", "Pariente", "Notas"]]

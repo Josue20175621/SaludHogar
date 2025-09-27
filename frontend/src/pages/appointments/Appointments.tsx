@@ -68,14 +68,14 @@ const Appointments: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Appointments</h2>
-        <button
+        <h2 className="text-2xl font-bold text-gray-800">Citas medicas</h2>
+        {/* <button
           onClick={handleOpenAddModal}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>Schedule Appointment</span>
-        </button>
+        </button> */}
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
@@ -83,10 +83,12 @@ const Appointments: React.FC = () => {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
-                <th className="text-left p-4 font-medium">Patient</th>
+                <th className="text-left p-4 font-medium">Miembro</th>
                 <th className="text-left p-4 font-medium">Doctor</th>
-                <th className="text-left p-4 font-medium">Date & Time</th>
-                <th className="text-left p-4 font-medium">Actions</th>
+                <th className="text-left p-4 font-medium">Fecha y hora</th>
+                <th className='text-left p-4 font-medium'>Especialidad</th>
+                <th className='text-left p-4 font-medium'>Lugar</th>
+                <th className='text-left p-4 font-medium'>Notas</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -100,7 +102,10 @@ const Appointments: React.FC = () => {
                       <span>{formatDateTime(appointment.appointment_date)}</span>
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="p-4">{appointment.specialty}</td>
+                  <td className="p-4">{appointment.location}</td>
+                  <td className="p-4">{appointment.notes}</td>
+                  {/* <td className="p-4">
                     <div className="flex space-x-1">
                       <button onClick={() => handleOpenEditModal(appointment)} className="p-2 text-gray-400 hover:text-cyan-600 rounded-full hover:bg-gray-100">
                         <Edit className="w-4 h-4" />
@@ -109,7 +114,7 @@ const Appointments: React.FC = () => {
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>
