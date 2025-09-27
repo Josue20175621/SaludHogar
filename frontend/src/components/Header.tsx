@@ -13,7 +13,7 @@ const Header: React.FC = () => {
           <Shield className="w-8 h-8" />
           <h1 className="text-xl font-bold">SaludHogar</h1>
         </div>
-        <div className="text-sm opacity-90">
+        <div className="text-xl font-semibold opacity-90">
           {activeFamily?.name}
         </div>
         <div>

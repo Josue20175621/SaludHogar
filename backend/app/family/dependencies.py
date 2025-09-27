@@ -3,7 +3,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Family, User, FamilyMembership
+from app.models import Family, User, FamilyMembership, FamilyMember
 from app.database import get_db
 from app.auth.dependencies import get_current_user
 
@@ -42,3 +42,14 @@ async def get_current_active_family(
          raise HTTPException(status_code=404, detail="Family not found.")
 
     return family
+
+# A dependency to get and validate the member
+async def get_target_member(
+    member_id: int, 
+    current_family: Family = Depends(get_current_active_family),
+    db: AsyncSession = Depends(get_db)
+) -> FamilyMember:
+    member = await db.get(FamilyMember, member_id)
+    if not member or member.family_id != current_family.id:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    return member

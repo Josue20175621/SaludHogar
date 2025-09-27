@@ -33,36 +33,11 @@ function Landing() {
             Salud<span className="text-emerald-600">Hogar</span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Tu bienestar y el de tu familia, siempre al alcance de tus manos
+            Tu historial medico familiar, siempre al alcance de tus manos
           </p>
         </div>
 
-        {/* Features */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-12">
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center shadow-sm border border-white/20">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-emerald-100 rounded-lg mb-4">
-              <Heart className="w-6 h-6 text-emerald-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Cuidado Personalizado</h3>
-            <p className="text-gray-600 text-sm">Servicios de salud adaptados a las necesidades de tu hogar</p>
-          </div>
-          
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center shadow-sm border border-white/20">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-cyan-100 rounded-lg mb-4">
-              <Shield className="w-6 h-6 text-cyan-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Seguro y Confiable</h3>
-            <p className="text-gray-600 text-sm">Servicios de calidad garantizada</p>
-          </div>
-          
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center shadow-sm border border-white/20">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mb-4">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Para Toda la Familia</h3>
-            <p className="text-gray-600 text-sm">Servicios integrales para cada miembro de tu familia</p>
-          </div>
-        </div>
+        
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">

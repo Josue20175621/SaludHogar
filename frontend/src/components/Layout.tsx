@@ -12,13 +12,13 @@ interface NavItem {
 }
 
 const navigationItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: Home },
-  { id: 'members', label: 'Family Members', path: '/dashboard/members', icon: Users },
-  { id: 'appointments', label: 'Appointments', path: '/dashboard/appointments', icon: Calendar },
-  { id: 'medications', label: 'Medications', path: '/dashboard/medications', icon: Pill },
-  { id: 'vaccinations', label: 'Vaccinations', path: '/dashboard/vaccinations', icon: Shield },
-  { id: 'profile', label: 'Profile', path: '/dashboard/profile', icon: User },
-  { id: 'settings', label: 'Settings', path: '/dashboard/settings', icon: Settings }
+  { id: 'dashboard', label: 'Resumen', path: '/app', icon: Home },
+  { id: 'members', label: 'Miembros', path: '/app/members', icon: Users },
+  { id: 'vaccinations', label: 'Vacunas', path: '/app/vaccinations', icon: Shield },
+  { id: 'appointments', label: 'Citas medicas', path: '/app/appointments', icon: Calendar },
+  { id: 'medications', label: 'Medicamentos', path: '/app/medications', icon: Pill },
+  // { id: 'profile', label: 'Profile', path: '/app/profile', icon: User },
+  // { id: 'settings', label: 'Settings', path: '/app/settings', icon: Settings }
 ];
 
 interface LayoutProps {
@@ -35,15 +35,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex overflow-x-auto">
           {navigationItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            let isActive = false;
+            if (item.path === '/app') {
+              // The dashboard tab is only active if the path is an EXACT match.
+              isActive = location.pathname === item.path;
+            } else {
+              // All other tabs are active if the current URL starts with their path.
+              isActive = location.pathname.startsWith(item.path);
+            }
             
             return (
               <Link
                 key={item.id}
                 to={item.path}
-                className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors duration-200 ${isActive ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'} whitespace-nowrap`}
+                className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors duration-200 whitespace-nowrap
+                  ${isActive 
+                    ? 'text-cyan-600 border-b-2 border-cyan-600' 
+                    : 'text-gray-500 hover:text-cyan-600 hover:border-gray-300'
+                  }
+                `}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className={`w-5 h-5 transition-colors duration-200 ${isActive ? 'text-cyan-600' : 'text-gray-400'}`} />
                 <span>{item.label}</span>
               </Link>
             );

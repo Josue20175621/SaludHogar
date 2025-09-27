@@ -58,10 +58,10 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
     except SQLAlchemyError as e:
         # Roll back all the changes
         await db.rollback()
-        print(f"Registration failed: {e}")
+        print(f"Error de SQLAlchemy: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not create account. Please try again."
+            detail="No se pudo crear la cuenta. Intenta de nuevo mas tarde"
         )
 
     sid = new_sid()

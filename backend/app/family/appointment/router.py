@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from app.database import get_db
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.family.dependencies import get_current_active_family
 from app.models import Appointment, Family, FamilyMember
@@ -16,32 +16,33 @@ router = APIRouter(
 async def get_all_appointments_for_family(
     current_family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db),
-    
-    # For pagination/limiting results
-    limit: int = Query(default=100, ge=1, le=200, description="Number of results to return"),
-    offset: int = Query(default=0, ge=0, description="Number of results to skip"),
-    
-    # For sorting
-    sort_by: Optional[str] = Query(default="appointment_date", description="Field to sort by"),
-    sort_order: Optional[str] = Query(default="desc", description="Sort order: 'asc' or 'desc'")
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    sort_by: Optional[str] = Query(default="appointment_date"),
+    sort_order: Optional[str] = Query(default="desc"),
+    future_appointments: bool = Query(default=False, description="Set to true to only fetch future appointments")
 ):
-    stmt = select(Appointment).where(
-        Appointment.family_id == current_family.id
+    stmt = (
+        select(Appointment)
+        .where(
+            Appointment.family_id == current_family.id
+        )
     )
 
+    if future_appointments: stmt = stmt.where(Appointment.appointment_date >= func.now())
+
+    # apply sorting
     sort_column = getattr(Appointment, sort_by, None)
-    if sort_column and hasattr(sort_column, 'asc'):
-        if sort_order.lower() == 'asc':
-            stmt = stmt.order_by(sort_column.asc())
-        else:
-            stmt = stmt.order_by(sort_column.desc())
+    if sort_column is not None and hasattr(sort_column, 'asc'):
+        order = sort_column.asc() if sort_order.lower() == 'asc' else sort_column.desc()
+        stmt = stmt.order_by(order)
     else:
         stmt = stmt.order_by(Appointment.appointment_date.desc())
 
+    # pagination
     stmt = stmt.offset(offset).limit(limit)
 
-    appointments = (await db.scalars(stmt)).all()
-    return appointments
+    return (await db.scalars(stmt)).all()
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=AppointmentOut)
 async def create_appointment(

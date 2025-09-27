@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import QRCodeSVG from 'react-qr-code';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Check, ArrowLeft, Smartphone } from 'lucide-react';
 import { authApi } from '../../api/axios';
 
@@ -15,6 +16,7 @@ const TwoFactorSetup = () => {
   const [success, setSuccess] = useState('');
   const [qrData, setQrData] = useState<TOTPSetup | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
+  const navigate = useNavigate();
 
   const generateQRCode = async () => {
     setLoading(true);
@@ -78,7 +80,7 @@ const TwoFactorSetup = () => {
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
         {/* Back Button */}
         <button 
-          onClick={() => window.history.back()}
+          onClick={() => navigate('/app')}
           className="absolute top-6 left-6 flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors duration-200"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -112,7 +114,7 @@ const TwoFactorSetup = () => {
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-emerald-800 mb-2">Antes de comenzar:</h3>
               <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• Instala una aplicación autenticadora (Google Authenticator, Authy, etc.)</li>
+                <li>• Instala una aplicación autenticadora (Google Authenticator, Authy, 2FAS Auth, etc.)</li>
                 <li>• Asegúrate de que tu dispositivo esté listo para escanear un código QR</li>
               </ul>
             </div>
@@ -281,10 +283,10 @@ const TwoFactorSetup = () => {
 
               {/* Continue Button */}
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => navigate('/app')}
                 className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                Continuar al Dashboard
+                Continuar a la aplicacion
               </button>
             </div>
           </div>

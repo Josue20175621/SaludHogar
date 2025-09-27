@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 # from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 
 from app.schemas import FamilyForm, FamilyMemberForm, FamilyOut, FamilyMemberOut, DashboardStats
 from app.models import Family, FamilyMember, Appointment, Medication, Vaccination
@@ -14,6 +14,31 @@ router = APIRouter(prefix="/families/{family_id}", tags=["Family"])
 async def get_family_members(family: Family = Depends(get_current_active_family)):
     """Get the current user's family's members."""
     return family.members
+
+@router.get("/members/{member_id}", response_model=FamilyMemberOut)
+async def get_family_member(
+    member_id: int,
+    # This dependency ensures the user has access to the family_id in the path
+    current_family: Family = Depends(get_current_active_family),
+    db: AsyncSession = Depends(get_db)
+):  
+    # We build a query that looks for a member matching the ID AND the family ID
+    # This single query acts as both a fetch and an authorization check.
+    stmt = select(FamilyMember).where(
+        FamilyMember.id == member_id,
+        FamilyMember.family_id == current_family.id
+    )
+    
+    result = await db.execute(stmt)
+    member = result.scalar_one_or_none() # Use scalar_one_or_none for fetching a single optional record
+    
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Family member not found."
+        )
+        
+    return member
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(
@@ -32,10 +57,17 @@ async def get_dashboard_stats(
         Appointment.appointment_date >= func.now() # func.now() gets the current DB time
     )
 
-    # Count active medications (assuming empty end_date means active (who wrote this nonsense))
-    stmt_medications = select(func.count(Medication.id)).where(
-        Medication.family_id == current_family.id,
-        Medication.end_date == None
+    # Count active medications
+    stmt_medications = (
+        select(func.count(Medication.id))
+        .where(
+            Medication.family_id == current_family.id,
+            Medication.start_date <= func.current_date(),
+            or_(
+                Medication.end_date == None,
+                Medication.end_date > func.current_date()
+            )
+        )
     )
     
     # Count total vaccination records

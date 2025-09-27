@@ -16,6 +16,9 @@ export interface FamilyMember {
   relation: string;
   blood_type: string;
   phone_number: string;
+  tobacco_use: string;
+  alcohol_use: string;
+  occupation: string;
 }
 
 export interface Family {
@@ -60,4 +63,49 @@ export interface DashboardStats {
   upcoming_appointment_count: number;
   active_medication_count: number;
   vaccination_record_count: number;
+}
+
+export interface Allergy {
+  id: number;
+  member_id: number;
+  category: string;
+  name: string;
+  reaction?: string;
+  is_severe: boolean;
+}
+
+export interface Condition {
+  id: number;
+  member_id: number;
+  name: string;
+  date_diagnosed?: string;
+  is_active: boolean;
+  notes?: string;
+}
+
+export interface Surgery {
+  id: number;
+  member_id: number;
+  name: string;
+  date_of_procedure: string;
+  surgeon_name?: string;
+  facility_name?: string;
+  notes?: string;
+}
+
+export interface Hospitalization {
+  id: number;
+  member_id: number;
+  reason: string;
+  admission_date: string;
+  discharge_date?: string;
+  facility_name?: string;
+  notes?: string;
+}
+
+export interface FamilyHistoryCondition {
+  id: number;
+  condition_name: string;
+  relative: string;
+  notes?: string;
 }

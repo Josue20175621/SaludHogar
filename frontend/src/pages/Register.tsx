@@ -7,6 +7,7 @@ import { authApi } from '../api/axios';
 import { useNotifier } from '../context/NotificationContext';
 
 function Register() {
+  const { fetchAndSetUser } = useAuth();
   const { notify } = useNotifier();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState<string>('');
@@ -18,7 +19,6 @@ function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const prevStep = () => setStep(prev => prev - 1);
 
@@ -66,8 +66,8 @@ function Register() {
         email, 
         password,
       });
-      login();
-      navigate('/dashboard');
+      await fetchAndSetUser();
+      navigate('/app');
     } catch (error: any) {
       notify(error.response?.data?.message || 'Error al crear la cuenta', 'error');
     } finally {

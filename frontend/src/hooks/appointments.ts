@@ -5,19 +5,37 @@ import type { Appointment } from '../types/family';
 
 export { useFamilyMembers } from './family';
 
-const fetchAppointments = async (familyId: number): Promise<Appointment[]> => {
-  const { data } = await familyApi.get(`/${familyId}/appointments?sort_by=appointment_date&sort_order=asc`);
+const fetchFamilyAppointments = async (familyId: number): Promise<Appointment[]> => {
+  const { data } = await familyApi.get(`/${familyId}/appointments?sort_order=asc`);
   return data;
 };
 
-export const useAppointments = () => {
+export const useFamilyAppointments = () => {
   const { activeFamily } = useAuth();
   const familyId = activeFamily?.id;
 
   return useQuery<Appointment[], Error>({
-    queryKey: ['appointments', familyId],
-    queryFn: () => fetchAppointments(familyId!),
+    queryKey: ['appointments', 'family', familyId],
+    queryFn: () => fetchFamilyAppointments(familyId!),
     enabled: !!familyId,
+  });
+};
+
+const fetchMemberAppointments = async (familyId: number, memberId: number): Promise<Appointment[]> => {
+  const url = `/${familyId}/members/${memberId}/appointments`;
+  const { data } = await familyApi.get(url);
+  return data;
+};
+
+export const useMemberAppointments = (memberId: number) => {
+  const { activeFamily } = useAuth();
+  const familyId = activeFamily?.id;
+
+  return useQuery<Appointment[], Error>({
+    queryKey: ['appointments', 'member', memberId],
+    queryFn: () => fetchMemberAppointments(familyId!, memberId),
+    // Query is enabled only if we have both a familyId and a memberId
+    enabled: !!familyId && !!memberId,
   });
 };
 
@@ -37,10 +55,15 @@ export const useAddAppointment = () => {
 
   return useMutation({
     mutationFn: addAppointment,
-    onSuccess: () => {
-      // When a new appointment is added, BOTH the appointments list and
-      // the dashboard stats are now out of date. We invalidate both.
-      queryClient.invalidateQueries({ queryKey: ['appointments', activeFamily?.id] });
+    // The `onSuccess` callback receives the returned data and the original variables
+    onSuccess: (data, variables) => {
+      // Invalidate the query for the ENTIRE family list.
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'family', activeFamily?.id] });
+      
+      // ALSO invalidate the query for the SPECIFIC member who got the new appointment.
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'member', variables.newAppointment.member_id] });
+      
+      // ALWAYS invalidate the dashboard stats.
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', activeFamily?.id] });
     },
   });
@@ -60,8 +83,11 @@ export const useUpdateAppointment = () => {
   
   return useMutation({
     mutationFn: updateAppointment,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appointments', activeFamily?.id] });
+    // The updated appointment data is returned as `updatedData`
+    onSuccess: (updatedData) => {
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'family', activeFamily?.id] });
+      // Invalidate the specific member's list as well
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'member', updatedData.member_id] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', activeFamily?.id] });
     },
   });
@@ -81,7 +107,7 @@ export const useDeleteAppointment = () => {
   return useMutation({
     mutationFn: deleteAppointment,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appointments', activeFamily?.id] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'family', activeFamily?.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', activeFamily?.id] });
     },
   });
