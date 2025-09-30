@@ -3,62 +3,43 @@ import { Heart, Shield, Users } from 'lucide-react';
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50">
-      {/* Navigation */}
-      <nav className="absolute top-0 right-0 p-6 z-10">
-        <div className="flex gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 relative overflow-hidden">
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
+      
+      <div className="relative flex flex-col items-center justify-center min-h-screen px-4">
+        <div className="text-center mb-12 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full mb-8 shadow-lg">
+            <Heart className="w-12 h-12 text-emerald-600 animate-pulse" fill="currentColor" />
+          </div>
+          <h1 className="text-7xl md:text-8xl font-bold bg-gradient-to-r from-gray-800 via-emerald-700 to-teal-700 bg-clip-text text-transparent mb-6">
+            Salud<span className="text-emerald-600">Hogar</span>
+          </h1>
+          <p className="text-2xl md:text-3xl text-gray-700 max-w-3xl mx-auto leading-relaxed font-light">
+            Tu historial médico familiar, siempre al alcance de tus manos
+          </p>
+        </div>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-6 mt-8">
           <Link 
             to="/login" 
-            className="px-6 py-2 text-emerald-700 hover:text-emerald-800 font-medium transition-colors duration-200"
+            className="px-10 py-4 bg-white text-emerald-700 rounded-xl hover:bg-gray-50 font-semibold transition-all duration-300 border-2 border-emerald-200 hover:border-emerald-300 shadow-md hover:shadow-xl transform hover:-translate-y-1 text-lg text-center"
           >
             Iniciar Sesión
           </Link>
           <Link 
             to="/register" 
-            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors duration-200 shadow-sm"
+            className="px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 text-lg text-center"
           >
             Registrarse
-          </Link>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="flex flex-col items-center justify-center min-h-screen px-4">
-        {/* Logo/Brand */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 rounded-full mb-6">
-            <Heart className="w-10 h-10 text-emerald-600" />
-          </div>
-          <h1 className="text-6xl md:text-7xl font-bold text-gray-800 mb-4">
-            Salud<span className="text-emerald-600">Hogar</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Tu historial medico familiar, siempre al alcance de tus manos
-          </p>
-        </div>
-
-        
-
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link 
-            to="/register" 
-            className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-          >
-            Comenzar Ahora
-          </Link>
-          <Link 
-            to="/login" 
-            className="px-8 py-3 bg-white text-emerald-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200 border border-emerald-200"
-          >
-            Ya tengo cuenta
           </Link>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="absolute bottom-0 left-0 right-0 p-6 text-center">
-        <p className="text-gray-500 text-sm">
+      <footer className="absolute bottom-0 left-0 right-0 p-8 text-center">
+        <p className="text-gray-600 text-sm font-medium">
           © 2025 SaludHogar. Cuidando de tu bienestar desde casa.
         </p>
       </footer>
