@@ -297,11 +297,6 @@ function Login() {
             </p>
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-gray-500 text-sm mt-6">
-          Al iniciar sesión, aceptas nuestros términos y condiciones
-        </p>
       </div>
     </div>
   );
