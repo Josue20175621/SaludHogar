@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import List, Optional
 
-from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text
+from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -18,7 +18,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
     is_totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -34,6 +34,10 @@ class User(Base):
         cascade="all, delete-orphan", # i don't know, what if we want to transfer ownership to other family members
         passive_deletes=True,
         uselist=False
+    )
+
+    notifications: Mapped[List["Notification"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
@@ -53,7 +57,7 @@ class Family(Base):
     )
     
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
     # Relationships 
@@ -140,7 +144,7 @@ class FamilyMember(Base):
     occupation: Mapped[Optional[str]] = mapped_column(String(255))
 
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
     # Relationships
@@ -187,7 +191,7 @@ class FamilyHistoryCondition(Base):
     relative: Mapped[str] = mapped_column(String(100), nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text)
 
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     
     
     family: Mapped["Family"] = relationship(back_populates="family_history")
@@ -206,7 +210,7 @@ class Hospitalization(Base):
     facility_name: Mapped[Optional[str]] = mapped_column(String(255))
     notes: Mapped[Optional[str]] = mapped_column(Text)
     
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     
     # --- Relationships ---
     family: Mapped["Family"] = relationship(back_populates="hospitalizations")
@@ -220,13 +224,14 @@ class Appointment(Base):
     family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
     member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
 
-    appointment_date: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
+    appointment_date: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     doctor_name: Mapped[str] = mapped_column(String(255), nullable=False)
     specialty: Mapped[Optional[str]] = mapped_column(String(255))
     location: Mapped[Optional[str]] = mapped_column(Text)
     notes: Mapped[Optional[str]] = mapped_column(Text)
+    is_reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default='f')
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
     # Relationships
@@ -258,7 +263,7 @@ class Medication(Base):
     prescribed_by: Mapped[Optional[str]] = mapped_column(String(255))
     notes: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
     # Relationships
@@ -286,7 +291,7 @@ class Vaccination(Base):
     notes: Mapped[Optional[str]] = mapped_column(Text)
 
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
     # Relationships
@@ -308,7 +313,7 @@ class Allergy(Base):
     reaction: Mapped[Optional[str]] = mapped_column(Text)
     is_severe: Mapped[bool] = mapped_column(Boolean, default=False)
     
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="allergies")
@@ -326,7 +331,7 @@ class Condition(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[Optional[str]] = mapped_column(Text)
     
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="conditions")
@@ -345,8 +350,26 @@ class Surgery(Base):
     facility_name: Mapped[Optional[str]] = mapped_column(String(255))
     notes: Mapped[Optional[str]] = mapped_column(Text)
     
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="surgeries")
     member: Mapped["FamilyMember"] = relationship(back_populates="surgeries")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    type: Mapped[str] = mapped_column(String(100), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    related_entity_type: Mapped[Optional[str]] = mapped_column(String(100))
+    related_entity_id: Mapped[Optional[int]] = mapped_column(Integer)
+
+    # --- Relationships ---
+    user: Mapped["User"] = relationship(back_populates="notifications")
