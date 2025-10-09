@@ -109,3 +109,17 @@ export interface FamilyHistoryCondition {
   relative: string;
   notes?: string;
 }
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  
+  type: string;
+  message: string;
+  is_read: boolean;
+  
+  created_at: string;
+  
+  related_entity_type: string | null;
+  related_entity_id: number | null;
+}

@@ -14,6 +14,7 @@ from app.family.surgery.router import router as surgery_router
 from app.family.hospitalization.router import router as hospitalization_router
 from app.family.historycondition.router import router as historycondition_router
 from app.family.memberdetail.router import router as memberdetailread_router
+from app.notifications import router as notifications_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,3 +46,4 @@ app.include_router(surgery_router)
 app.include_router(hospitalization_router)
 app.include_router(historycondition_router)
 app.include_router(memberdetailread_router)
+app.include_router(notifications_router)

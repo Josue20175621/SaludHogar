@@ -301,3 +301,18 @@ class MedicalReport(BaseModel):
     report_generated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class NotificationOut(BaseModel):
+    id: int
+    user_id: int
+    
+    type: str
+    message: str
+    is_read: bool
+    
+    created_at: datetime
+    
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[int] = None
+    
+    model_config = ConfigDict(from_attributes=True)
