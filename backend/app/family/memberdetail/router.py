@@ -48,7 +48,6 @@ router = APIRouter(
 def _resolve_member_photo(member: FamilyMember) -> Path | None:
     rel = getattr(member, "profile_image_relpath", None)
     if rel:
-        print(f"rel {rel}")
         candidate = (BASE_DIR / rel).resolve()
         try:
             candidate.relative_to(BASE_DIR)  # path traversal guard
