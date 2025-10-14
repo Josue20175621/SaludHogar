@@ -60,6 +60,7 @@ class FamilyMemberOut(BaseModel):
     first_name: str
     last_name: str
     birth_date: Optional[date]
+    profile_image_relpath: Optional[str]
     gender: Optional[str]
     relation: Optional[str]
     blood_type: Optional[str]

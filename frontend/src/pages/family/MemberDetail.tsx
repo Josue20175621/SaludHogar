@@ -26,6 +26,8 @@ const MemberDetail: React.FC = () => {
   const { memberId } = useParams<{ memberId: string }>();
   const navigate = useNavigate();
   const { activeFamily } = useAuth();
+  const API_URL = import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+
 
   const { data: member, isLoading, isError, error } = useMemberDetails(memberId);
 
@@ -134,8 +136,22 @@ const MemberDetail: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex items-start gap-6">
+        {/* Avatar */}
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold overflow-hidden flex-shrink-0">
+          {member.profile_image_relpath ? (
+            <img
+              src={`${API_URL}/families/${activeFamily?.id}/members/${member.id}/photo`}
+              alt={`${member.first_name} ${member.last_name}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{member.first_name[0]}{member.last_name[0]}</span>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1">
           <Link to="/app/members" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-2">
             <ArrowLeft className="w-4 h-4" />
             Volver a Miembros

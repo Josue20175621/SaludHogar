@@ -12,6 +12,7 @@ export interface FamilyMember {
   first_name: string;
   last_name: string;
   birth_date: string;
+  profile_image_relpath: string;
   gender: string;
   relation: string;
   blood_type: string;

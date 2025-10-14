@@ -105,7 +105,7 @@ const FamilyMembers: React.FC = () => {
         </button> */}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
         {members?.map(member => (
           <MemberCard
             key={member.id}
@@ -140,27 +140,54 @@ interface MemberCardProps {
   isDeleting: boolean;
 }
 
-const MemberCard: React.FC<MemberCardProps> = ({member}) => (
-  <Link 
-    to={`/app/members/${member.id}`} 
-    className="relative block bg-white p-5 rounded-lg shadow-sm border hover:shadow-md hover:-translate-y-1 transition-all duration-200"
-  >
-    {/* Relation badge with color */}
-    <div className={`absolute top-3 right-3 text-base font-semibold px-3 py-1 rounded-full ${getRelationBadgeColor(member.relation)}`}>
-      {member.relation}
-    </div>
+const MemberCard: React.FC<MemberCardProps> = ({member}) => {
+  const { activeFamily } = useAuth();
+  const API_URL = import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
 
-    <h3 className="text-lg font-bold text-gray-900">
-      {member.first_name} {member.last_name}
-    </h3>
 
-    <div className="mt-2 flex items-center text-sm text-gray-600 space-x-4">
-      <p><span className="font-medium text-gray-500">Género:</span> {member.gender}</p>
-      {member.birth_date && (
-        <p><span className="font-medium text-gray-500">Edad:</span> {calculateAge(member.birth_date)} años</p>
-      )}
-    </div>
-  </Link>
-);
+  return (
+    <Link 
+      to={`/app/members/${member.id}`} 
+      className="group relative block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl hover:border-cyan-500 transition-all duration-300"
+    >
+      {/* Image Container */}
+      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+        <img 
+          src={`${API_URL}/families/${activeFamily?.id}/members/${member.id}/photo`}
+          alt={`${member.first_name} ${member.last_name}`}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        {/* Relation badge overlay */}
+        <div className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1.5 rounded-full shadow-md ${getRelationBadgeColor(member.relation)}`}>
+          {member.relation}
+        </div>
+      </div>
+
+      {/* Content Container */}
+      <div className="p-4">
+        <h3 className="text-lg font-bold text-gray-900 mb-3 truncate">
+          {member.first_name} {member.last_name}
+        </h3>
+
+        <div className="space-y-2 text-sm text-gray-600">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-gray-500">Género:</span>
+            <span className="text-gray-900 font-medium">{member.gender}</span>
+          </div>
+          
+          {member.birth_date && (
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-gray-500">Edad:</span>
+              <span className="text-gray-900 font-medium">{calculateAge(member.birth_date)} años</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Hover indicator */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-cyan-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+    </Link>
+  );
+};
 
 export default FamilyMembers;

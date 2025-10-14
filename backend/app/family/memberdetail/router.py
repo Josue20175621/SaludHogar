@@ -1,10 +1,11 @@
 from babel.dates import format_datetime
-from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
-
+import mimetypes
+from pathlib import Path
 from datetime import datetime
 
 from reportlab.lib.pagesizes import letter, A4
@@ -37,11 +38,34 @@ from app.schemas import (
     MedicalReport,
 )
 
+BASE_DIR = (Path(__file__).resolve().parents[2] / "images" / "profile").resolve()
 
 router = APIRouter(
     prefix="/families/{family_id}/members/{member_id}",
     tags=["Member Health Records"]
 )
+
+def _resolve_member_photo(member: FamilyMember) -> Path | None:
+    rel = getattr(member, "profile_image_relpath", None)
+    if rel:
+        print(f"rel {rel}")
+        candidate = (BASE_DIR / rel).resolve()
+        try:
+            candidate.relative_to(BASE_DIR)  # path traversal guard
+        except ValueError:
+            return None
+        return candidate if candidate.is_file() else None
+
+@router.get("/photo")
+async def serve_member_photo(member: FamilyMember = Depends(get_target_member)):
+    file_path = _resolve_member_photo(member)
+    if not file_path: raise HTTPException(status_code=404, detail="Image not found")
+    
+    media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    headers = {"Cache-Control": "private, no-store"} # Avoid shared caching
+    return FileResponse(file_path, media_type=media_type, headers=headers)
+
+
 
 @router.get("/appointments", response_model=List[AppointmentOut])
 async def get_member_appointments(
