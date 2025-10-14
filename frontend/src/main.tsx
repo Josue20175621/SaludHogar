@@ -22,6 +22,7 @@ import MemberDetail from './pages/family/MemberDetail';
 import Appointments from './pages/appointments/Appointments';
 import Medications from './pages/medications/Medications';
 import Vaccinations from './pages/vaccinations/Vaccinations';
+import Notifications from './pages/notifications/Notifications'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   <Route path="appointments" element={<Appointments />} /> {/* /app/appointments */}
                   <Route path="medications" element={<Medications />} /> {/* /app/medications */}
                   <Route path="vaccinations" element={<Vaccinations />} /> {/* /app/vaccinations */}
+                  <Route path="notifications" element={<Notifications />} /> {/* /app/notifications */}
 
                   {/* <Route path="profile" element={<ProfilePage />} /> */}
                   {/* <Route path="settings" element={<SettingsPage />} /> /app/settings */}
@@ -74,7 +76,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </AuthProvider>
       </BrowserRouter>
 
-      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </React.StrictMode>,
 );

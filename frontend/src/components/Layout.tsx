@@ -2,17 +2,20 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Header from './Header';
 import type {LucideIcon} from 'lucide-react'
+import { NotificationBell } from './NotificationBell';
 import { Users, Calendar, Pill, Shield, Home, User, Settings } from 'lucide-react';
 
 interface NavItem {
   id: string;
   label: string;
   path: string;
-  icon: LucideIcon;
+  icon: LucideIcon | React.ComponentType<{ className?: string }>;
+  isCustom?: boolean;
 }
 
 const navigationItems: NavItem[] = [
   { id: 'dashboard', label: 'Resumen', path: '/app', icon: Home },
+  { id: 'notifications', label: 'Notificaciones', path: '/app/notifications', icon: NotificationBell, isCustom: true },
   { id: 'members', label: 'Miembros', path: '/app/members', icon: Users },
   { id: 'vaccinations', label: 'Vacunas', path: '/app/vaccinations', icon: Shield },
   { id: 'appointments', label: 'Citas medicas', path: '/app/appointments', icon: Calendar },
@@ -44,6 +47,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               isActive = location.pathname.startsWith(item.path);
             }
             
+            // Handle notifications differently since it uses a custom component
+            if (item.isCustom) {
+              const CustomIcon = Icon as React.ComponentType<any>;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors duration-200 whitespace-nowrap
+                    ${isActive 
+                      ? 'text-cyan-600 border-b-2 border-cyan-600' 
+                      : 'text-gray-500 hover:text-cyan-600 hover:border-gray-300'
+                    }
+                  `}
+                >
+                  <CustomIcon />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            }
+
             return (
               <Link
                 key={item.id}
