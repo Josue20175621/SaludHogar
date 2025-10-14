@@ -2,7 +2,6 @@ import React from "react";
 import { useAuth } from '../context/AuthContext';
 import LogoutButton from "./LogoutButton";
 import { Shield } from "lucide-react";
-import { NotificationBell } from './Notifications';
 
 const Header: React.FC = () => {
   const { activeFamily } = useAuth();
@@ -18,7 +17,6 @@ const Header: React.FC = () => {
           {activeFamily?.name}
         </div>
         <div className="flex items-center justify-between">
-          <NotificationBell />
           <LogoutButton />
         </div>
       </div>
