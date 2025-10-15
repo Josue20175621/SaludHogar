@@ -135,10 +135,10 @@ const MemberDetail: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-6">
+    <div className="space-y-4">
+      <div className="flex items-start gap-4 md:gap-6">
         {/* Avatar */}
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold overflow-hidden flex-shrink-0">
+        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl md:text-3xl font-bold overflow-hidden flex-shrink-0">
           {member.profile_image_relpath ? (
             <img
               src={`${API_URL}/families/${activeFamily?.id}/members/${member.id}/photo`}
@@ -151,38 +151,26 @@ const MemberDetail: React.FC = () => {
         </div>
 
         {/* Info */}
-        <div className="flex-1">
-          <Link to="/app/members" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-2">
-            <ArrowLeft className="w-4 h-4" />
-            Volver a Miembros
+        <div className="flex-1 min-w-0">
+          <Link to="/app/members" className="flex items-center gap-2 text-xs md:text-sm text-gray-500 hover:text-gray-800 mb-1 md:mb-2">
+            <ArrowLeft className="w-3 h-3 md:w-4 md:h-4" />
+            <span className="hidden sm:inline">Volver a Miembros</span>
+            <span className="sm:hidden">Volver</span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{member.first_name} {member.last_name}</h1>
-          <p className="text-gray-600">{member.relation}</p>
-          <p><span className="font-medium text-gray-500">Edad:</span> {member.birth_date ? `${calculateAge(member.birth_date)} años` : 'N/A'}</p>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900">{member.first_name} {member.last_name}</h1>
+          <p className="text-sm md:text-base text-gray-600">{member.relation}</p>
+          <p className="text-sm md:text-base"><span className="font-medium text-gray-500">Edad:</span> {member.birth_date ? `${calculateAge(member.birth_date)} años` : 'N/A'}</p>
         </div>
 
-        <div className="flex space-x-2">
-          <button
-            onClick={handleReport}
-            className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-cyan-700 flex items-center gap-2 transition-all duration-200 cursor-pointer"
-          >
-            <FileText className="w-4 h-4" />
-            Generar informe médico
-          </button>
-          {/* <button
-            onClick={() => setIsEditModalOpen(true)}
-            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2"
-          >
-            <Edit className="w-4 h-4" /> Edit
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleteMemberMutation.isPending}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" /> Delete
-          </button> */}
-        </div>
+        {/* Button - Icon only on mobile, full text on desktop */}
+        <button
+          onClick={handleReport}
+          className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-3 md:px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-cyan-700 flex items-center gap-2 transition-all duration-200 cursor-pointer flex-shrink-0"
+          title="Generar informe médico"
+        >
+          <FileText className="w-5 h-5 md:w-4 md:h-4" />
+          <span className="hidden md:inline whitespace-nowrap">Generar informe médico</span>
+        </button>
       </div>
 
       <Tabs>

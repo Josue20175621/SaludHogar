@@ -1,5 +1,4 @@
-import React, {useState} from 'react';
-import { Plus } from 'lucide-react';
+import React, { useState } from 'react';
 import { calculateAge } from '../../utils/formatters';
 import { useFamilyMembers, useAddMember, useUpdateMember, useDeleteMember } from '../../hooks/family';
 import { useAuth } from '../../context/AuthContext';
@@ -33,18 +32,17 @@ const FamilyMembers: React.FC = () => {
   const { activeFamily } = useAuth();
   const { members, isLoading, isError } = useFamilyMembers();
 
-  // Modal state and data
+  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // null for "Add" mode, or a FamilyMember object for "Edit" mode
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
 
-  // CUD 
+  // CUD
   const addMemberMutation = useAddMember();
   const updateMemberMutation = useUpdateMember();
   const deleteMemberMutation = useDeleteMember();
 
   const handleOpenAddModal = () => {
-    setEditingMember(null); // Ensure we are in "Add" mode
+    setEditingMember(null);
     setIsModalOpen(true);
   };
 
@@ -57,13 +55,11 @@ const FamilyMembers: React.FC = () => {
     if (!activeFamily) return;
 
     if (editingMember) {
-      // UPDATE mode
       updateMemberMutation.mutate(
         { familyId: activeFamily.id, memberId: editingMember.id, updatedMember: formData },
         { onSuccess: () => setIsModalOpen(false) }
       );
     } else {
-      // CREATE mode
       addMemberMutation.mutate(
         { familyId: activeFamily.id, newMember: formData },
         { onSuccess: () => setIsModalOpen(false) }
@@ -73,13 +69,11 @@ const FamilyMembers: React.FC = () => {
 
   const handleDeleteMember = (memberId: number) => {
     if (!activeFamily) return;
-    // Show a confirmation dialog first!
-    if (window.confirm('Are you sure you want to delete this member?')) {
+    if (window.confirm('¿Seguro que deseas eliminar este miembro?')) {
       deleteMemberMutation.mutate({ familyId: activeFamily.id, memberId });
     }
   };
 
-  // Clean
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full w-full">
@@ -93,32 +87,26 @@ const FamilyMembers: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Miembros de la familia</h2>
-        {/* <button
-          onClick={handleOpenAddModal}
-          className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 flex items-center space-x-2 transition-colors cursor-pointer"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Agregar miembro</span>
-        </button> */}
+    <div className="min-h-[70vh] bg-neutral-900 text-neutral-100 rounded-xl p-6">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold">Selecciona un perfil</h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      {/* Grid of profile tiles */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 place-items-center">
         {members?.map(member => (
-          <MemberCard
+          <MemberProfileTile
             key={member.id}
             member={member}
             onEdit={() => handleOpenEditModal(member)}
             onDelete={() => handleDeleteMember(member.id)}
-            isDeleting={deleteMemberMutation.isPending && deleteMemberMutation.variables?.memberId === member.id}
           />
         ))}
-        {members?.length === 0 && (
-          <p className="col-span-full text-center text-gray-500 mt-8">Aun no se han agregado miembros.</p>
-        )}
       </div>
+
+      {members?.length === 0 && (
+        <p className="text-center text-neutral-400 mt-10">Aún no se han agregado miembros.</p>
+      )}
 
       {isModalOpen && (
         <MemberFormModal
@@ -133,59 +121,81 @@ const FamilyMembers: React.FC = () => {
   );
 };
 
-interface MemberCardProps {
+interface MemberProfileTileProps {
   member: FamilyMember;
   onEdit: () => void;
   onDelete: () => void;
-  isDeleting: boolean;
 }
 
-const MemberCard: React.FC<MemberCardProps> = ({member}) => {
+const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member }) => {
   const { activeFamily } = useAuth();
-  const API_URL = import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+  const API_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    `${window.location.protocol}//${window.location.hostname}:8000`;
 
+  const age = member.birth_date ? calculateAge(member.birth_date) : null;
+  const initials =
+    `${member.first_name?.[0] ?? ''}${member.last_name?.[0] ?? ''}`.toUpperCase() || '?';
+
+  const badgeColor = getRelationBadgeColor(member.relation);
 
   return (
-    <Link 
-      to={`/app/members/${member.id}`} 
-      className="group relative block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl hover:border-cyan-500 transition-all duration-300"
+    <Link
+      to={`/app/members/${member.id}`}
+      className="group w-36 sm:w-40 md:w-44 lg:w-48 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 rounded-md"
     >
-      {/* Image Container */}
-      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-        <img 
+      {/* Avatar container */}
+      <div className="relative aspect-square rounded-md overflow-hidden ring-2 ring-transparent group-hover:ring-white/90 group-focus:ring-white/90 transition-all duration-300">
+        <img
           src={`${API_URL}/families/${activeFamily?.id}/members/${member.id}/photo`}
           alt={`${member.first_name} ${member.last_name}`}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+          className="h-full w-full object-cover select-none group-hover:scale-[1.03] transition-transform duration-300"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.src =
+              'data:image/svg+xml;charset=UTF-8,' +
+              encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+                  <defs>
+                    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#262626"/>
+                      <stop offset="100%" stop-color="#1f2937"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#g)"/>
+                  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+                        font-size="160" fill="#9ca3af"
+                        font-family="system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif"
+                        letter-spacing="2">${initials}</text>
+                </svg>
+              `);
+          }}
         />
-        {/* Relation badge overlay */}
-        <div className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1.5 rounded-full shadow-md ${getRelationBadgeColor(member.relation)}`}>
+
+        {/* Relation badge */}
+        <div
+          className={
+            `absolute top-2 right-2 px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-md ring-1 ring-black/10 max-w-[75%] truncate ` +
+            badgeColor
+          }
+          title={member.relation}
+        >
           {member.relation}
         </div>
+
+        {/* Subtle hover overlay */}
+        <div className="pointer-events-none absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
       </div>
 
-      {/* Content Container */}
-      <div className="p-4">
-        <h3 className="text-lg font-bold text-gray-900 mb-3 truncate">
+      <div className="mt-3 text-center">
+        <p className="text-sm md:text-base font-medium truncate">
           {member.first_name} {member.last_name}
-        </h3>
-
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-500">Género:</span>
-            <span className="text-gray-900 font-medium">{member.gender}</span>
-          </div>
-          
-          {member.birth_date && (
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-500">Edad:</span>
-              <span className="text-gray-900 font-medium">{calculateAge(member.birth_date)} años</span>
-            </div>
-          )}
-        </div>
+        </p>
+        <p className="text-xs text-neutral-400">
+          {age !== null ? `${age} años` : 'Edad desconocida'} • {member.gender || '—'}
+        </p>
       </div>
-
-      {/* Hover indicator */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-cyan-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
     </Link>
   );
 };
