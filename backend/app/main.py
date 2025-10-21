@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database import engine
+from app.auth.session import redis_client
 from app.models import Base
 from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as auth_router
@@ -18,12 +19,14 @@ from app.notifications import router as notifications_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create database tables
+    # Startup: Create database tables and test redis connection    
+    await redis_client.ping()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield  # App runs here
     # Shutdown: Clean up resources if needed
     await engine.dispose()
+    await redis_client.close()
 
 app = FastAPI(lifespan=lifespan)
 
