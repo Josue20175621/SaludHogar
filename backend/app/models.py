@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import List, Optional
 
-from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text, Integer
+from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text, Integer, UniqueConstraint, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -375,3 +375,26 @@ class Notification(Base):
 
     # --- Relationships ---
     user: Mapped["User"] = relationship(back_populates="notifications")
+
+class FCMToken(Base):
+    __tablename__ = "fcm_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token: Mapped[str] = mapped_column(Text, nullable=False)
+    device_id: Mapped[Optional[str]] = mapped_column(String(255))
+
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
+    )
+    last_updated: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "token", name="uq_user_token"),
+        Index("idx_user_id", "user_id"),
+    )

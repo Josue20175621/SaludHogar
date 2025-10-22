@@ -317,3 +317,14 @@ class NotificationOut(BaseModel):
     related_entity_id: Optional[int] = None
     
     model_config = ConfigDict(from_attributes=True)
+
+class FCMToken(BaseModel):
+    token: str
+    user_id: str
+    device_id: Optional[str] = None
+
+class NotificationRequest(BaseModel):
+    user_id: str
+    title: str
+    body: str
+    data: Optional[dict] = None
