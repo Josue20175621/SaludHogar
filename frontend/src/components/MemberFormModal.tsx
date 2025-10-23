@@ -38,7 +38,7 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+    <div className="fixed inset-0 text-gray-900 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6">{initialData ? 'Editar Miembro de la Familia' : 'Agregar Nuevo Miembro'}</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
