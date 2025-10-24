@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Response, Request, Depends
-from app.models import User, Family, FamilyMember, FamilyMembership
-from app.schemas import UserOut, TOTP, TOTPSetup, TOTPVerifyRequest, LoginForm, RegisterForm
+from app.models import User, Family, FamilyMember, FamilyMembership, FCMTokenModel
+from app.schemas import UserOut, TOTP, TOTPSetup, TOTPVerifyRequest, LoginForm, RegisterForm, FCMToken, NotificationRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload
+from firebase_admin import messaging
 from app.database import get_db
 from app.config import settings
 from app.security.passwords import hash_password, verify_password
@@ -172,3 +173,45 @@ async def verify_and_enable_2fa(
     await db.refresh(user)
     
     return {"message": "2FA habilitado satisfactoriamente"}
+
+@router.post("/push/fcm-token")
+async def register_fcm_token(
+    fcm_token: FCMToken,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(FCMTokenModel).where(
+            FCMTokenModel.user_id == fcm_token.user_id,
+            FCMTokenModel.token == fcm_token.token
+        )
+    )
+    
+    existing_token = result.scalar_one_or_none()
+    
+    if existing_token:
+        if fcm_token.device_id:
+            existing_token.device_id = fcm_token.device_id
+        await db.commit()
+        await db.refresh(existing_token)
+    else:
+        new_token = FCMTokenModel(
+            user_id=fcm_token.user_id,
+            token=fcm_token.token,
+            device_id=fcm_token.device_id
+        )
+        db.add(new_token)
+        await db.commit()
+        await db.refresh(new_token)
+    
+    count_result = await db.execute(
+        select(func.count()).select_from(FCMTokenModel).where(
+            FCMTokenModel.user_id == fcm_token.user_id
+        )
+    )
+    active_devices = count_result.scalar()
+    
+    return {
+        "message": "Token registered successfully",
+        "active_devices": active_devices
+    }
+

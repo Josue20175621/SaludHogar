@@ -1,15 +1,19 @@
 import sys
 import os
 import asyncio
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.database import AsyncSessionLocal
 from app.models import Appointment, Notification, FamilyMembership
+from app.auth.dependencies import send_push_notifications
+from app.firebase_config import get_firebase_app
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+get_firebase_app()
 
 async def find_upcoming_appointments_and_notify():
     print(f"[{datetime.now()}] corriendo check de citas")
@@ -60,6 +64,7 @@ async def find_upcoming_appointments_and_notify():
                     )
                     db.add(new_notification)
                     print(f"  - Creando notificacion para usuario {membership.user_id} para cita {appt.id}")
+                    await send_push_notifications(db, membership.user_id, "Recordatorio de Cita", f"Cita para {member_name} con {appt.doctor_name} pronto", {"url": "/app/appointments"})
                 
                 # Mark this appointment as notified to prevent future duplicates.
                 appt.is_reminder_sent = True

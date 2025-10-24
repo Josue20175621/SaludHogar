@@ -320,7 +320,7 @@ class NotificationOut(BaseModel):
 
 class FCMToken(BaseModel):
     token: str
-    user_id: str
+    user_id: int
     device_id: Optional[str] = None
 
 class NotificationRequest(BaseModel):

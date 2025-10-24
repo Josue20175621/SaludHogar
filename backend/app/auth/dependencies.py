@@ -1,10 +1,12 @@
 import pyotp
+from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy import select
+from firebase_admin import messaging
 from sqlalchemy.ext.asyncio import AsyncSession 
 from app.config import settings
 from app.database import get_db
-from app.models import User
+from app.models import User, FCMTokenModel
 from app.auth.session import redis_client
 
 async def get_current_user(
@@ -51,3 +53,34 @@ def totp_ok(secret: str, code: str, valid_window: int = 1) -> bool:
         return totp.verify(code, valid_window=valid_window)
     except Exception:
         return False
+
+async def send_push_notifications(
+    db: AsyncSession,
+    user_id: int,
+    title: str,
+    body: str,
+    data: Optional[dict] = None
+):
+    # Get all FCM tokens for this user
+    result = await db.execute(
+        select(FCMTokenModel).where(FCMTokenModel.user_id == user_id)
+    )
+    tokens = result.scalars().all()
+    if not tokens: return {"success": False, "message": "No tiene dispositivos registrados"}
+    token_strings = [t.token for t in tokens]
+
+
+    message = messaging.MulticastMessage(
+        notification=messaging.Notification(title=title, body=body),
+        data=data or {},
+        tokens=token_strings,
+    )
+
+    try:
+        response = messaging.send_each_for_multicast(message)
+        return {
+            "success": True,
+            "devices_reached": response.success_count
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}

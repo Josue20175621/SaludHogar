@@ -376,7 +376,7 @@ class Notification(Base):
     # --- Relationships ---
     user: Mapped["User"] = relationship(back_populates="notifications")
 
-class FCMToken(Base):
+class FCMTokenModel(Base):
     __tablename__ = "fcm_tokens"
 
     id: Mapped[int] = mapped_column(primary_key=True)
