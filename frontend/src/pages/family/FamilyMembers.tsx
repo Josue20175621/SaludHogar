@@ -3,6 +3,7 @@ import { calculateAge } from '../../utils/formatters';
 import { useFamilyMembers, useAddMember, useUpdateMember, useDeleteMember } from '../../hooks/family';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import type { FamilyMember } from '../../types/family';
 import { MemberFormModal } from '../../components/MemberFormModal';
 
@@ -102,6 +103,18 @@ const FamilyMembers: React.FC = () => {
             onDelete={() => handleDeleteMember(member.id)}
           />
         ))}
+
+        <button
+          onClick={handleOpenAddModal}
+          className="flex flex-col items-center gap-3 group cursor-pointer"
+        >
+          <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-neutral-800 hover:bg-neutral-700 border-2 border-dashed border-neutral-600 hover:border-neutral-500 transition-all flex items-center justify-center group-hover:scale-105">
+            <Plus className="w-12 h-12 text-neutral-500 group-hover:text-neutral-300 transition-colors" />
+          </div>
+          <p className="text-neutral-400 text-center group-hover:text-white transition-colors font-medium">
+            Agregar Perfil
+          </p>
+        </button>
       </div>
 
       {members?.length === 0 && (
@@ -189,7 +202,7 @@ const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member }) => {
       </div>
 
       <div className="mt-3 text-center">
-        <p className="text-sm md:text-base font-medium truncate">
+        <p className="text-sm md:text-base font-medium text-neutral-500 group-hover:text-white transition-colors duration-300 truncate">
           {member.first_name} {member.last_name}
         </p>
         <p className="text-xs text-neutral-400">

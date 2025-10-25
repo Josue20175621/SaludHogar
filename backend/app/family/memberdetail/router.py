@@ -61,7 +61,7 @@ async def serve_member_photo(member: FamilyMember = Depends(get_target_member)):
     if not file_path: raise HTTPException(status_code=404, detail="Image not found")
     
     media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
-    headers = {"Cache-Control": "private, no-store"} # Avoid shared caching
+    headers = {"Cache-Control": "private, max-age=86400"}
     return FileResponse(file_path, media_type=media_type, headers=headers)
 
 
