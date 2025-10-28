@@ -8,8 +8,6 @@ from sqlalchemy.orm import selectinload
 from app.database import AsyncSessionLocal
 from app.models import Appointment, Notification, FamilyMembership
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 async def find_upcoming_appointments_and_notify():
     print(f"[{datetime.now()}] corriendo check de citas")
