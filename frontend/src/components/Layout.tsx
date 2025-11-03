@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import Header from './Header';
-import type {LucideIcon} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
-import { Users, Calendar, Pill, Shield, Home, User, Settings } from 'lucide-react';
+import { Users, Calendar, Pill, Shield, Home } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import LogoutButton from './LogoutButton';
 
 interface NavItem {
   id: string;
@@ -15,54 +16,55 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   { id: 'dashboard', label: 'Resumen', path: '/app', icon: Home },
-  { id: 'notifications', label: 'Notificaciones', path: '/app/notifications', icon: NotificationBell, isCustom: true },
   { id: 'members', label: 'Miembros', path: '/app/members', icon: Users },
+  { id: 'notifications', label: 'Notificaciones', path: '/app/notifications', icon: NotificationBell, isCustom: true },
   { id: 'appointments', label: 'Citas medicas', path: '/app/appointments', icon: Calendar },
   { id: 'medications', label: 'Medicamentos', path: '/app/medications', icon: Pill },
-  { id: 'vaccinations', label: 'Vacunas', path: '/app/vaccinations', icon: Shield },
-  // { id: 'profile', label: 'Profile', path: '/app/profile', icon: User },
-  // { id: 'settings', label: 'Settings', path: '/app/settings', icon: Settings }
+  { id: 'vaccinations', label: 'Vacunas', path: '/app/vaccinations', icon: Shield }
 ];
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  const { activeFamily } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
-      <nav className="bg-white border-b border-gray-200">
-        <div className="flex overflow-x-auto">
-          {navigationItems.map((item) => {
+      <header className="sticky top-0 z-20 bg-transparent backdrop-blur-md px-4 py-3">
+        <nav className="flex items-center gap-2 overflow-x-auto p-0.5">
+          
+          {/* Logo */}
+          <Link
+            to="/app"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-100 text-gray-700"
+          >
+            <Shield className="w-6 h-6 text-cyan-600" />
+            <span className="font-bold">SaludHogar</span>
+          </Link>
+
+          {/* Nav */}
+          {navigationItems.map(item => {
             const Icon = item.icon;
-            let isActive = false;
-            if (item.path === '/app') {
-              // The dashboard tab is only active if the path is an EXACT match.
-              isActive = location.pathname === item.path;
-            } else {
-              // All other tabs are active if the current URL starts with their path.
-              isActive = location.pathname.startsWith(item.path);
-            }
-            
-            // Handle notifications differently since it uses a custom component
+            let isActive = item.path === '/app'
+              ? location.pathname === item.path
+              : location.pathname.startsWith(item.path);
+
+            const baseClasses =
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-base font-medium whitespace-nowrap transition-colors";
+
+
+            const activeClasses = "bg-cyan-50 text-cyan-700 font-semibold";
+            const inactiveClasses = "text-gray-600 hover:bg-cyan-100";
+
             if (item.isCustom) {
               const CustomIcon = Icon as React.ComponentType<any>;
               return (
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors duration-200 whitespace-nowrap
-                    ${isActive 
-                      ? 'text-cyan-600 border-b-2 border-cyan-600' 
-                      : 'text-gray-500 hover:text-cyan-600 hover:border-gray-300'
-                    }
-                  `}
+                  className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
                 >
-                  <CustomIcon />
-                  <span>{item.label}</span>
+                  <CustomIcon className="w-5 h-5" />
+                  {item.label}
                 </Link>
               );
             }
@@ -71,23 +73,30 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Link
                 key={item.id}
                 to={item.path}
-                className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors duration-200 whitespace-nowrap
-                  ${isActive 
-                    ? 'text-cyan-600 border-b-2 border-cyan-600' 
-                    : 'text-gray-500 hover:text-cyan-600 hover:border-gray-300'
-                  }
-                `}
+                className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
               >
-                <Icon className={`w-5 h-5 transition-colors duration-200 ${isActive ? 'text-cyan-600' : 'text-gray-400'}`} />
-                <span>{item.label}</span>
+                <Icon className="w-5 h-5" />
+                {item.label}
               </Link>
             );
           })}
-        </div>
-      </nav>
-      <main className="p-6">
-        {children}
-      </main>
+
+          <div className="flex-grow"></div>
+
+          {activeFamily?.name && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-gray-700">
+              <div className="flex flex-col leading-tight">
+                <span className="text-base font-semibold">
+                  {activeFamily.name}
+                </span>
+              </div>
+            </div>
+          )}
+          <LogoutButton />
+        </nav>
+      </header>
+
+      <main className="p-6">{children}</main>
     </div>
   );
 };

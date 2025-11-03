@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 
 const LogoutButton: FC = () => {
   const { logout } = useAuth();
-  const navigate   = useNavigate();
-  
+  const navigate = useNavigate();
+
   const handleClick = async () => {
     try {
       await logout();
@@ -20,12 +20,13 @@ const LogoutButton: FC = () => {
   return (
     <button
       onClick={handleClick}
-      className="flex items-center gap-2 px-4 py-2 text-white/80 font-medium hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+      className="flex items-center gap-2 px-3 py-1.5 text-gray-700 font-medium cursor-pointer rounded-xl hover:text-cyan-700 hover:bg-cyan-50 transition-all duration-200"
       aria-label="Cerrar Sesión"
     >
-      <LogOut className="w-5 h-5" />
+      <LogOut className="w-4 h-4" />
       <span>Cerrar Sesión</span>
     </button>
+
   );
 };
 

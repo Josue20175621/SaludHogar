@@ -76,10 +76,10 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <Link
         to="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors duration-200"
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-gray-800 transition-colors duration-200"
       >
         <ArrowLeft className="w-5 h-5" />
         <span className="font-medium">Volver</span>
@@ -241,7 +241,7 @@ function Register() {
             <div className="mt-8 pt-6 border-t border-gray-200">
               <p className="text-center text-gray-600">
                 ¿Ya tienes una cuenta?{' '}
-                <Link to="/login" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors duration-200">
+                <Link to="/login" className="text-cyan-600 hover:text-cyan-700 font-medium transition-colors duration-200">
                   Inicia sesión aquí
                 </Link>
               </p>

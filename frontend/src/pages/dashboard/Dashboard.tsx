@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Calendar, Pill, Shield } from 'lucide-react';
+import { Users, Calendar, Pill, Shield, ArrowRight } from 'lucide-react';
 import { formatDateTime } from '../../utils/formatters';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -50,82 +50,115 @@ const Dashboard: React.FC = () => {
 
     const { memberMap, memberById, isLoading: isLoadingMembers } = useFamilyMembers();
 
-    // Don't render the grid until both stats and members are loaded
-    // Users can see stats immediately while appointments/medications load
     const isLoading = isLoadingStats || isLoadingMembers;
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-full w-full">
+            <div className="flex items-center justify-center h-full w-full min-h-[400px]">
                 <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
-                <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Miembros de la familia</p>
-                            <p className="text-2xl font-bold text-blue-600">{stats?.member_count || 0}</p>
+        <div className="space-y-8 pb-8">
+            {/* Welcome Section - Desktop Only */}
+            <div className="hidden md:block">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel de Control</h1>
+                <p className="text-gray-600">Resumen de la salud familiar</p>
+            </div>
+
+            {/* Stats Grid - Responsive */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                <div onClick={() => navigate('/app/members')}
+                    className="bg-gradient-to-br from-blue-50 to-white p-4 sm:p-6 rounded-xl shadow-sm border border-blue-100 hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                    <div className="flex flex-col space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                            </div>
                         </div>
-                        <Users className="w-8 h-8 text-blue-600" />
+                        <div>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Miembros</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-blue-600">{stats?.member_count || 0}</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Próximas citas</p>
-                            <p className="text-2xl font-bold text-green-600">{stats?.upcoming_appointment_count || 0}</p>
+                <div onClick={() => navigate('/app/appointments')}
+                    className="bg-gradient-to-br from-green-50 to-white p-4 sm:p-6 rounded-xl shadow-sm border border-green-100 hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                    <div className="flex flex-col space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                            </div>
                         </div>
-                        <Calendar className="w-8 h-8 text-green-600" />
+                        <div>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Próximas citas</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-green-600">{stats?.upcoming_appointment_count || 0}</p>
+                            {(stats?.upcoming_appointment_count || 0) > 3 && (
+                                <button
+                                    onClick={() => navigate('/app/appointments')}
+                                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                                    Ver todas
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Medicamentos activos</p>
-                            <p className="text-2xl font-bold text-purple-600">{stats?.active_medication_count || 0}</p>
+                <div onClick={() => navigate('/app/medications')}
+                    className="bg-gradient-to-br from-purple-50 to-white p-4 sm:p-6 rounded-xl shadow-sm border border-purple-100 hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                    <div className="flex flex-col space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                                <Pill className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+                            </div>
                         </div>
-                        <Pill className="w-8 h-8 text-purple-600" />
+                        <div>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Medicamentos activos</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-purple-600">{stats?.active_medication_count || 0}</p>
+                            {(stats?.active_medication_count || 0) > 3 && (
+                            <button
+                                onClick={() => navigate('/app/medications')}
+                                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                                Ver todos
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        )}
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Registros de vacunas</p>
-                            <p className="text-2xl font-bold text-orange-600">{stats?.vaccination_record_count || 0}</p>
+                <div onClick={() => navigate('/app/vaccinations')}
+                    className="bg-gradient-to-br from-orange-50 to-white p-4 sm:p-6 rounded-xl shadow-sm border border-orange-100 hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                    <div className="flex flex-col space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="p-2 bg-orange-100 rounded-lg">
+                                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+                            </div>
                         </div>
-                        <Shield className="w-8 h-8 text-orange-600" />
+                        <div>
+                            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Vacunas registradas</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-orange-600">{stats?.vaccination_record_count || 0}</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
                 {/* Appointments */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold">Próximas citas</h3>
-                        {(stats?.upcoming_appointment_count || 0) > 3 && (
-                            <button
-                                onClick={() => navigate('/app/appointments')}
-                                className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                                Ver todas ({stats?.upcoming_appointment_count})
-                            </button>
-                        )}
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Próximas citas</h3>
                     </div>
 
                     {isLoadingAppointments ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="p-3 bg-gray-50 rounded-lg animate-pulse">
+                                <div key={i} className="p-4 bg-gray-50 rounded-lg animate-pulse">
                                     <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                                     <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
                                     <div className="h-3 bg-gray-200 rounded w-2/3"></div>
@@ -139,11 +172,14 @@ const Dashboard: React.FC = () => {
                                 return (
                                     <div
                                         key={appointment.id}
-                                        className="relative flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-150 cursor-pointer group"
+                                        className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-150 cursor-pointer border border-transparent hover:border-gray-200"
                                     >
-                                        <div className="flex-1 pr-20">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <p className="font-medium">
+                                        <div className="p-2 bg-green-100 rounded-lg shrink-0">
+                                            <Calendar className="w-5 h-5 text-green-600" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                <p className="font-semibold text-gray-900 text-sm sm:text-base">
                                                     {memberMap.get(appointment.member_id) || 'Cargando...'}
                                                 </p>
                                                 {member?.relation && (
@@ -154,44 +190,38 @@ const Dashboard: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-gray-700 mb-1">
                                                 {appointment.doctor_name} - {appointment.specialty}
                                             </p>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-xs sm:text-sm text-gray-500">
                                                 {formatDateTime(appointment.appointment_date)}
                                             </p>
                                         </div>
-                                        <Calendar className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
                                     </div>
                                 );
                             })}
                         </div>
                     ) : (
-                        <div className="text-center py-8">
-                            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500 mb-1">No hay próximas citas</p>
-                            <p className="text-xs text-gray-400">Las citas programadas aparecerán aquí</p>
+                        <div className="text-center py-12">
+                            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-3">
+                                <Calendar className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-sm font-medium text-gray-700 mb-1">No hay próximas citas</p>
+                            <p className="text-xs text-gray-500">Las citas programadas aparecerán aquí</p>
                         </div>
                     )}
                 </div>
 
                 {/* Medications */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold">Medicamentos activos</h3>
-                        {(stats?.active_medication_count || 0) > 3 && (
-                            <button
-                                onClick={() => navigate('/app/medications')}
-                                className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                                Ver todos ({stats?.active_medication_count})
-                            </button>
-                        )}
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Medicamentos activos</h3>
                     </div>
 
                     {isLoadingMedications ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="p-3 bg-gray-50 rounded-lg animate-pulse">
+                                <div key={i} className="p-4 bg-gray-50 rounded-lg animate-pulse">
                                     <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                                     <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
                                     <div className="h-3 bg-gray-200 rounded w-2/3"></div>
@@ -205,11 +235,14 @@ const Dashboard: React.FC = () => {
                                 return (
                                     <div
                                         key={med.id}
-                                        className="relative flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-150 cursor-pointer group"
+                                        className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-150 cursor-pointer border border-transparent hover:border-gray-200"
                                     >
-                                        <div className="flex-1 pr-20">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <p className="font-medium">
+                                        <div className="p-2 bg-purple-100 rounded-lg shrink-0">
+                                            <Pill className="w-5 h-5 text-purple-600" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                <p className="font-semibold text-gray-900 text-sm sm:text-base">
                                                     {memberMap.get(med.member_id) || 'Cargando...'}
                                                 </p>
                                                 {member?.relation && (
@@ -220,23 +253,24 @@ const Dashboard: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-gray-700 mb-1">
                                                 {med.name} - {med.dosage}
                                             </p>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-xs sm:text-sm text-gray-500">
                                                 {med.frequency}
                                             </p>
                                         </div>
-                                        <Pill className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
                                     </div>
                                 );
                             })}
                         </div>
                     ) : (
-                        <div className="text-center py-8">
-                            <Pill className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500 mb-1">No hay medicamentos activos</p>
-                            <p className="text-xs text-gray-400">Los medicamentos registrados aparecerán aquí</p>
+                        <div className="text-center py-12">
+                            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-3">
+                                <Pill className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-sm font-medium text-gray-700 mb-1">No hay medicamentos activos</p>
+                            <p className="text-xs text-gray-500">Los medicamentos registrados aparecerán aquí</p>
                         </div>
                     )}
                 </div>

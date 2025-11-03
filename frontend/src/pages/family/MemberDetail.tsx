@@ -165,12 +165,18 @@ const MemberDetail: React.FC = () => {
         {/* Button - Icon only on mobile, full text on desktop */}
         <button
           onClick={handleReport}
-          className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-3 md:px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-cyan-700 flex items-center gap-2 transition-all duration-200 cursor-pointer flex-shrink-0"
           title="Generar informe médico"
+          className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl 
+             bg-gradient-to-r from-emerald-600 to-cyan-600 text-white 
+             shadow-sm hover:shadow-md 
+             transition-all duration-200 cursor-pointer flex-shrink-0"
         >
           <FileText className="w-5 h-5 md:w-4 md:h-4" />
-          <span className="hidden md:inline whitespace-nowrap">Generar informe médico</span>
+          <span className="hidden md:inline whitespace-nowrap">
+            Generar informe médico
+          </span>
         </button>
+
       </div>
 
       <Tabs>

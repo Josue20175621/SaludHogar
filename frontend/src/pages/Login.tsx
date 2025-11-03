@@ -103,7 +103,7 @@ function Login() {
         {/* Back Button */}
         <button 
           onClick={handleBackFrom2FA}
-          className="absolute top-6 left-6 flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors duration-200"
+          className="absolute top-6 left-6 flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors duration-200"
         >
           <ArrowLeft className="w-5 h-5" />
           <span className="font-medium">Volver</span>
@@ -114,8 +114,8 @@ function Login() {
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
-                <Shield className="w-8 h-8 text-emerald-600" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-100 rounded-full mb-4">
+                <Shield className="w-8 h-8 text-gray-700" />
               </div>
               <h1 className="text-2xl font-bold text-gray-800 mb-2">
                 Verificación de Seguridad
@@ -138,7 +138,7 @@ function Login() {
                   value={twoFactorCode}
                   onChange={handleTwoFactorCodeChange}
                   placeholder="123456"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 text-center text-2xl font-mono tracking-widest"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors duration-200 text-center text-2xl font-mono tracking-widest"
                   maxLength={6}
                   autoComplete="one-time-code"
                   autoFocus
@@ -160,7 +160,7 @@ function Login() {
               <button
                 type="submit"
                 disabled={twoFactorLoading || twoFactorCode.length !== 6}
-                className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-cyan-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-cyan-700 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {twoFactorLoading ? (
                   <div className="flex items-center justify-center gap-2">
@@ -179,11 +179,11 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       {/* Back Button */}
       <Link 
         to="/" 
-        className="absolute top-6 left-6 flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors duration-200"
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-gray-800 transition-colors duration-200"
       >
         <ArrowLeft className="w-5 h-5" />
         <span className="font-medium">Volver</span>
@@ -194,8 +194,8 @@ function Login() {
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
-              <Heart className="w-8 h-8 text-emerald-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-100 rounded-full mb-4">
+              <Heart className="w-8 h-8 text-gray-700" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">
               Bienvenido de vuelta
@@ -223,7 +223,7 @@ function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@ejemplo.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white/50"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50"
                 />
               </div>
             </div>
@@ -244,7 +244,7 @@ function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white/50"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50"
                 />
                 <button
                   type="button"
@@ -271,7 +271,7 @@ function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="w-full bg-cyan-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-cyan-700 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
