@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, Stethoscope, MapPin, Notebook } from 'lucide-react';
+import { Calendar, Stethoscope, MapPin} from 'lucide-react';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../../context/AuthContext';
@@ -10,16 +10,29 @@ import {
 import { type Appointment } from '../../types/family';
 
 const formatAppointmentDate = (dateString: string): string => {
-  try {
-    const date = parseISO(dateString);
-    if (isToday(date)) return `Hoy a las ${format(date, 'p', { locale: es })}`;
-    if (isTomorrow(date)) return `Mañana a las ${format(date, 'p', { locale: es })}`;
-    return format(date, 'PPpp', { locale: es });
-  } catch (error) {
-    console.error("Invalid date format:", dateString);
-    return "Fecha inválida";
-  }
+  const date = new Date(dateString);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const isToday = date.toDateString() === today.toDateString();
+  const isTomorrow = date.toDateString() === tomorrow.toDateString();
+
+  const time = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+  if (isToday) return `Hoy a las ${time}`;
+  if (isTomorrow) return `Mañana a las ${time}`;
+
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
+
 
 const Appointments: React.FC = () => {
   const API_URL =
@@ -59,7 +72,7 @@ const Appointments: React.FC = () => {
         let groupKey: string = 'Próximamente';
         if (isToday(date)) groupKey = 'Hoy';
         else if (isTomorrow(date)) groupKey = 'Mañana';
-        
+
         if (!acc[groupKey]) acc[groupKey] = [];
         acc[groupKey].push(appointment);
         return acc;
@@ -70,7 +83,7 @@ const Appointments: React.FC = () => {
         const date = parseISO(appointment.appointment_date);
         // Group by month and year, e.g., "Octubre 2025"
         const groupKey = format(date, 'MMMM yyyy', { locale: es });
-        
+
         if (!acc[groupKey]) acc[groupKey] = [];
         acc[groupKey].push(appointment);
         return acc;
@@ -86,27 +99,25 @@ const Appointments: React.FC = () => {
       </div>
     );
   }
-  
+
   const appointmentsToDisplay = viewMode === 'upcoming' ? upcomingAppointments : pastAppointments;
 
   return (
-    <div className="space-y-8 p-4 md:p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-8 md:p-6 bg-gray-50 min-h-screen">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h2 className="text-3xl font-bold text-gray-800">Citas Médicas</h2>
         <div className="flex bg-gray-200 rounded-lg p-1">
           <button
             onClick={() => setViewMode('upcoming')}
-            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
-              viewMode === 'upcoming' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
-            }`}
+            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${viewMode === 'upcoming' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
+              }`}
           >
             Próximas
           </button>
           <button
             onClick={() => setViewMode('past')}
-            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
-              viewMode === 'past' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
-            }`}
+            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${viewMode === 'past' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
+              }`}
           >
             Anteriores
           </button>
@@ -126,10 +137,10 @@ const Appointments: React.FC = () => {
                   const initials = `${member.first_name?.[0] ?? ''}${member.last_name?.[0] ?? ''}`.toUpperCase() || '?';
 
                   return (
-                    <div key={appointment.id} className={`bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden transform hover:-translate-y-1.5 transition-transform duration-300 ease-in-out ${viewMode === 'past' ? 'opacity-80' : ''}`}>
-                      <div className="p-5">
-                        <div className="flex items-center mb-4">
-                          <div className="w-12 h-12 rounded-full mr-4 overflow-hidden flex-shrink-0 bg-gray-200 border">
+                    <div key={appointment.id} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 flex flex-col ${viewMode === 'past' ? 'opacity-70 grayscale' : 'hover:-translate-y-1'}`}>
+                      <div className="bg-gradient-to-br from-green-50 to-white p-4 rounded-t-xl border-b border-green-100">
+                        <div className="flex items-center">
+                          <div className="w-12 h-12 rounded-full mr-4 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
                             <img
                               key={member.id}
                               src={`${API_URL}/families/${activeFamily?.id}/members/${member.id}/photo`}
@@ -146,16 +157,55 @@ const Appointments: React.FC = () => {
                             />
                           </div>
                           <div>
-                            <p className="font-bold text-lg text-gray-900">{`${member.first_name} ${member.last_name}`}</p>
-                            <p className="text-sm text-gray-600">{appointment.specialty}</p>
+                            <p className="font-bold text-lg text-green-900">{`${member.first_name} ${member.last_name}`}</p>
+                            <p className="text-sm font-medium text-green-700">{appointment.specialty}</p>
                           </div>
                         </div>
-                        <div className="space-y-3 text-gray-700">
-                          <div className="flex items-start space-x-3"><Stethoscope className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" /><span>{appointment.doctor_name}</span></div>
-                          <div className="flex items-start space-x-3"><Clock className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" /><span>{formatAppointmentDate(appointment.appointment_date)}</span></div>
-                          <div className="flex items-start space-x-3"><MapPin className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" /><span>{appointment.location}</span></div>
-                          {appointment.notes && (<div className="flex items-start space-x-3 pt-3 border-t mt-4"><Notebook className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" /><span className="italic text-gray-600">{appointment.notes}</span></div>)}
+                      </div>
+
+                      <div className="p-4 space-y-4 flex-grow">
+                        {/* Key Info Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+
+                          {/* Date and Time */}
+                          <div className="space-y-1 sm:col-span-2">
+                            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+                              <Calendar className="w-4 h-4 mr-1.5 text-green-600" />
+                              <span>Fecha y Hora</span>
+                            </div>
+                            <p className="text-base font-bold text-green-900 pl-6">
+                              {formatAppointmentDate(appointment.appointment_date)}
+                            </p>
+                          </div>
+
+                          {/* Doctor */}
+                          <div className="space-y-1">
+                            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+                              <Stethoscope className="w-4 h-4 mr-1.5 text-green-600" />
+                              <span>Profesional</span>
+                            </div>
+                            <p className="text-base font-bold text-green-900 pl-6">{appointment.doctor_name}</p>
+                          </div>
+
+                          {/* Location */}
+                          <div className="space-y-1">
+                            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+                              <MapPin className="w-4 h-4 mr-1.5 text-green-600" />
+                              <span>Ubicación</span>
+                            </div>
+                            <p className="text-base font-bold text-green-900 pl-6">{appointment.location}</p>
+                          </div>
                         </div>
+
+                        {/* Notes Section */}
+                        {appointment.notes && (
+                          <>
+                            <hr className="border-gray-100" />
+                            <div className="border-l-4 border-green-200 bg-green-50/50 p-3 rounded-r-md">
+                              <p className="text-sm text-green-900 italic leading-relaxed">{appointment.notes}</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -166,8 +216,8 @@ const Appointments: React.FC = () => {
         ))
       ) : (
         <div className="text-center py-16 bg-white rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold text-gray-700">{viewMode === 'upcoming' ? 'Todo despejado' : 'Sin historial'}</h3>
-            <p className="text-gray-500 mt-2">{viewMode === 'upcoming' ? 'No hay próximas citas programadas.' : 'No se encontraron citas anteriores.'}</p>
+          <h3 className="text-xl font-semibold text-gray-700">{viewMode === 'upcoming' ? 'Todo despejado' : 'Sin historial'}</h3>
+          <p className="text-gray-500 mt-2">{viewMode === 'upcoming' ? 'No hay próximas citas programadas.' : 'No se encontraron citas anteriores.'}</p>
         </div>
       )}
     </div>

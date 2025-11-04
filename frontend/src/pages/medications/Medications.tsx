@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Calendar, User, Beaker, Repeat, Clock } from 'lucide-react';
 import type { Medication, FamilyMember } from '../../types/family';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
@@ -15,7 +15,7 @@ import {
 const Medications: React.FC = () => {
   const { activeFamily } = useAuth();
   const { data: medications, isLoading: isLoadingMedications } = useMedications();
-  const { members: familyMembers, memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
+  const { memberById: memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
@@ -66,9 +66,9 @@ const Medications: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Medicamentos</h2>
+        <h2 className="text-3xl font-bold text-gray-800">Medicamentos</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -76,9 +76,8 @@ const Medications: React.FC = () => {
           <MedicationCard
             key={medication.id}
             medication={medication}
-            memberName={memberMap.get(medication.member_id) || 'Desconocido'}
-            onEdit={() => handleOpenEditModal(medication)}
-            onDelete={() => handleDeleteMedication(medication.id)}
+            member={memberMap.get(medication.member_id)}
+            activeFamilyId={activeFamily?.id}
             isDeleting={deleteMedicationMutation.isPending && deleteMedicationMutation.variables?.medicationId === medication.id}
           />
         ))}
@@ -89,13 +88,12 @@ const Medications: React.FC = () => {
 
 interface MedicationCardProps {
   medication: Medication;
-  memberName: string;
-  onEdit: () => void;
-  onDelete: () => void;
+  member?: FamilyMember;
+  activeFamilyId?: number
   isDeleting: boolean;
 }
 
-const MedicationCard: React.FC<MedicationCardProps> = ({ medication, memberName, onEdit, onDelete, isDeleting }) => {
+const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, activeFamilyId, isDeleting }) => {
   // A helper to determine if the medication is currently active based on our business logic
   const isActive = () => {
     if (!medication.start_date) return false; // Must have a start date to be active
@@ -114,57 +112,121 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, memberName,
     return true; // No end date, so it's ongoing
   };
 
+  const API_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    `${window.location.protocol}//${window.location.hostname}:8000`;
+
   return (
-    <div className={`bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}>
+    <div className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}>
       {/* Header */}
-      <div className="flex justify-between items-start mb-4 pb-4 border-b">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">{medication.name}</h3>
-          <p className="text-sm text-gray-600">{memberName}</p>
-        </div>
-      </div>
+      <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-t-xl border-b border-purple-100">
+        <div className="flex items-center justify-between">
 
-      {/* Detalles */}
-      <div className="space-y-3 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Dosis:</span>
-          <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">{medication.dosage}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Frecuencia:</span>
-          <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">{medication.frequency}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Fecha de inicio:</span>
-          <span className="text-gray-700">{medication.start_date ? formatDate(medication.start_date) : 'N/D'}</span>
-        </div>
-        {medication.end_date && (
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-500">Fecha de finalización:</span>
-            <span className="text-gray-700">{formatDate(medication.end_date)}</span>
+          {/* Foto de perfil + detalles */}
+          <div className="flex items-center">
+
+            <div className="w-12 h-12 rounded-full mr-4 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
+              <img
+                key={member?.id}
+                src={`${API_URL}/families/${activeFamilyId}/members/${member?.id}/photo`}
+                alt={`${member?.first_name} ${member?.last_name}`}
+                loading="lazy"
+                className="h-full w-full object-cover select-none"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  const initials = `${member?.first_name?.[0] || ''}${member?.last_name?.[0] || ''}`;
+                  target.src = 'data:image/svg+xml;charset=UTF-8,' +
+                    encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#262626"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="160" fill="#9ca3af" font-family="system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif" letter-spacing="2">${initials}</text></svg>
+              `);
+                }}
+              />
+            </div>
+
+            <div>
+              <h3 className="font-bold text-lg text-purple-900">{medication.name}</h3>
+              <p className="text-purple-500 text-sm font-bold">{`${member?.first_name} ${member?.last_name}`}</p>
+            </div>
           </div>
-        )}
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-500">Prescrito por:</span>
-          <span className="text-gray-700">{medication.prescribed_by || 'N/D'}</span>
+
+          {isActive() && (
+            <span className="inline-flex items-center gap-x-1.5 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+              Activo
+            </span>
+          )}
         </div>
       </div>
 
-      {(medication.notes || isActive()) && (
-        <div className="mt-4 pt-4 border-t">
-          {isActive() && (
-            <div className="flex items-center space-x-2 text-green-600 mb-2">
-              <AlertCircle className="w-4 h-4" />
-              <span className="text-sm font-semibold">Activo</span>
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+
+          {/* Dosis */}
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+              <Beaker className="w-4 h-4 mr-1.5 text-purple-900" />
+              <span>Dosis</span>
+            </div>
+            <p className="text-base font-bold text-purple-900 pl-6">{medication.dosage}</p>
+          </div>
+
+          {/* Frecuencia */}
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+              <Repeat className="w-4 h-4 mr-1.5 text-purple-900" />
+              <span>Frecuencia</span>
+            </div>
+            <p className="text-base font-bold text-purple-900 pl-6">{medication.frequency}</p>
+          </div>
+
+          {/* Inicio */}
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+              <Calendar className="w-4 h-4 mr-1.5 text-purple-900" />
+              <span>Inicio</span>
+            </div>
+            <p className="text-base font-bold text-purple-900 pl-6">
+              {medication.start_date ? formatDate(medication.start_date) : 'N/D'}
+            </p>
+          </div>
+
+          {/* Fin */}
+          {medication.end_date && (
+            <div className="space-y-1">
+              <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+                <Clock className="w-4 h-4 mr-1.5 text-purple-900" />
+                <span>Fin</span>
+              </div>
+              <p className="text-base font-bold text-purple-900 pl-6">
+                {formatDate(medication.end_date)}
+              </p>
             </div>
           )}
-          {medication.notes && (
-            <p className="text-sm text-gray-600 italic">
-              "{medication.notes}"
-            </p>
+        </div>
+
+        {/* Divider */}
+        {(medication.prescribed_by || medication.notes) && <hr className="border-gray-100" />}
+
+        {/* Doctor */}
+        <div className="space-y-3">
+          {medication.prescribed_by && (
+            <div className="flex items-center space-x-2 text-sm">
+              <User className="w-4 h-4 text-gray-400" />
+              <span className="text-gray-500">Prescrito por:</span>
+              <span className="font-medium text-gray-800">
+                {medication.prescribed_by}
+              </span>
+            </div>
           )}
         </div>
-      )}
+
+        {/* Notes */}
+        {medication.notes && (
+          <div className="border-l-4 border-purple-200 bg-purple-50 p-3 rounded-r-md">
+            <p className="text-sm text-purple-800 italic leading-relaxed">{medication.notes}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

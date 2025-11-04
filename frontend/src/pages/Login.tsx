@@ -3,26 +3,25 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Heart, Mail, Lock, ArrowLeft, Eye, EyeOff, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifier } from '../context/NotificationContext';
 import type { AxiosError } from 'axios';
 import { authApi } from '../api/axios';
 
 function Login() {
   const { fetchAndSetUser, preAuthToken, setPreAuthToken } = useAuth();
+  const { notify } = useNotifier();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showTwoFactor, setShowTwoFactor] = useState<boolean>(() => !!preAuthToken);
   const [twoFactorCode, setTwoFactorCode] = useState<string>('');
-  const [twoFactorError, setTwoFactorError] = useState<string>('');
   const [twoFactorLoading, setTwoFactorLoading] = useState<boolean>(false);
-  const [loginError, setLoginError] = useState<string>('');
   
   const navigate = useNavigate();
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setLoginError('');
     
     try {
       const response = await authApi.post('/login', { email, password });
@@ -37,8 +36,7 @@ function Login() {
       }
 
     } catch (error: any) {
-      console.error('Login error:', error);
-      setLoginError(error.response?.data?.message || 'Error al iniciar sesión');
+      notify(error.response?.data?.message || 'Error al iniciar sesión', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -47,12 +45,11 @@ function Login() {
   const handleTwoFactorSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setTwoFactorLoading(true);
-    setTwoFactorError('');
     
     try {
       await handleTwoFactorVerification(twoFactorCode);
     } catch (error: any) {
-      setTwoFactorError(error.message);
+      notify(error.message, 'error');
     } finally {
       setTwoFactorLoading(false);
     }
@@ -60,7 +57,7 @@ function Login() {
 
   const handleTwoFactorVerification = async (code: string) => {
     if (!preAuthToken) {
-      throw new Error('Inicia sesion otra vez');
+      notify('La sesión ha expirado. Por favor, inicia sesión otra vez.', 'error');
     }
     try {
       await authApi.post('/2fa/verify', { code, token: preAuthToken });
@@ -70,21 +67,19 @@ function Login() {
       fetchAndSetUser();
       navigate('/app');
     } catch (err: any) {
-      console.error('2FA verification error:', err);
       setTwoFactorCode('');
       
       const axiosErr = err as AxiosError<{ detail?: string }>;
       const errorMessage = axiosErr.response?.data?.detail 
-        ?? 'Código de verificación inválido';
+        ?? 'Código de verificación inválido o expirado.';
 
-      throw new Error(errorMessage);
+      notify(errorMessage, 'error');
     }
   };
 
   const handleBackFrom2FA = () => {
     setShowTwoFactor(false);
     setTwoFactorCode('');
-    setTwoFactorError('');
     setPassword('');
     setPreAuthToken(null);
   };
@@ -148,13 +143,6 @@ function Login() {
                   Ingresa el código de 6 dígitos
                 </p>
               </div>
-
-              {/* Error Message */}
-              {twoFactorError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-sm text-red-600 text-center">{twoFactorError}</p>
-                </div>
-              )}
 
               {/* Submit Button */}
               <button
@@ -259,13 +247,6 @@ function Login() {
                 </button>
               </div>
             </div>
-
-            {/* Error Message */}
-            {loginError && (
-              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
-                {loginError}
-              </div>
-            )}
 
             {/* Submit Button */}
             <button

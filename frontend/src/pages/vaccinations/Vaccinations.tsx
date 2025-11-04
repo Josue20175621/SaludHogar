@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Stethoscope, Edit, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
 import type { Vaccination, FamilyMember } from '../../types/family';
@@ -12,10 +12,105 @@ import {
   useDeleteVaccination,
 } from '../../hooks/vaccinations';
 
+interface VaccinationCardProps {
+  vaccination: Vaccination;
+  member?: FamilyMember;
+  activeFamilyId?: number
+  onEdit: () => void;
+  onDelete: () => void;
+  isDeleting: boolean;
+}
+
+const VaccinationCard: React.FC<VaccinationCardProps> = ({ vaccination, member, activeFamilyId, onEdit, onDelete, isDeleting }) => {
+
+  const memberName = member ? `${member.first_name} ${member.last_name}` : 'Desconocido';
+  const initials = member ? `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}` : 'D';
+  const API_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    `${window.location.protocol}//${window.location.hostname}:8000`;
+
+  return (
+    <div className="flex flex-col bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 hover:-translate-y-1">
+
+      <div className="bg-gradient-to-br from-orange-50 to-white p-4 rounded-t-xl border-b border-orange-100">
+        <div className="mb-3">
+          <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-sm font-bold text-orange-800">
+            {vaccination.vaccine_name}
+          </span>
+        </div>
+
+        {/* Member Info */}
+        <div className="flex items-center">
+          <div className="w-8 h-8 rounded-full mr-3 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
+            <img
+              key={member?.id}
+              src={member ? `${API_URL}/families/${activeFamilyId}/members/${member.id}/photo` : ''}
+              alt={memberName}
+              loading="lazy"
+              className="h-full w-full object-cover select-none"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.src = 'data:image/svg+xml;charset=UTF-8,' +
+                  encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#262626"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="160" fill="#9ca3af" font-family="system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif" letter-spacing="2">${initials}</text></svg>
+              `);
+              }}
+            />
+          </div>
+          <p className="font-medium text-orange-900">{memberName}</p>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4 flex-grow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          {/* Date */}
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+              <Calendar className="w-4 h-4 mr-1.5 text-orange-600" />
+              <span>Fecha</span>
+            </div>
+            <p className="text-sm font-bold text-orange-900 pl-6">
+              {formatDate(vaccination.date_administered)}
+            </p>
+          </div>
+
+          {/* Administered By */}
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
+              <Stethoscope className="w-4 h-4 mr-1.5 text-orange-600" />
+              <span>Administrado por</span>
+            </div>
+            <p className="text-sm font-bold text-orange-900 pl-6">
+              {vaccination.administered_by || 'N/A'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end space-x-1 p-2 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+        <button
+          onClick={onEdit}
+          className="p-2 text-gray-400 hover:text-cyan-600 rounded-full hover:bg-gray-100"
+        >
+          <Edit className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onDelete}
+          disabled={isDeleting}
+          className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 disabled:opacity-50"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const VaccinationsPage: React.FC = () => {
   const { activeFamily } = useAuth();
   const { data: vaccinations, isLoading: isLoadingVaccinations } = useVaccinations();
-  const { members: familyMembers, memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
+  const {members: familyMembers, memberById: memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVaccination, setEditingVaccination] = useState<Vaccination | null>(null);
@@ -60,12 +155,12 @@ const VaccinationsPage: React.FC = () => {
   const isLoading = isLoadingVaccinations || isLoadingMembers;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Vacunas</h2>
+        <h2 className="text-3xl font-bold text-gray-800">Vacunas</h2>
         <button
           onClick={handleOpenAddModal}
-          className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center space-x-2 transition-colors"
+          className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center space-x-2 transition-colors cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           <span>Agregar vacuna</span>
@@ -77,44 +172,23 @@ const VaccinationsPage: React.FC = () => {
           <div className="w-8 h-8 border-4 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="text-left p-4 font-medium">Miembro</th>
-                  <th className="text-left p-4 font-medium">Vacuna</th>
-                  <th className="text-left p-4 font-medium">Fecha de administración</th>
-                  <th className="text-left p-4 font-medium">Administrado por</th>
-                  <th className="text-left p-4 font-medium">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {vaccinations?.map(vaccination => (
-                  <tr key={vaccination.id} className="hover:bg-gray-50">
-                    <td className="p-4 font-medium text-gray-800">{memberMap.get(vaccination.member_id) || 'Desconocido'}</td>
-                    <td className="p-4">
-                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">
-                        {vaccination.vaccine_name}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-700">{formatDate(vaccination.date_administered)}</td>
-                    <td className="p-4 text-gray-700">{vaccination.administered_by || 'N/A'}</td>
-                    <td className="p-4">
-                      <div className="flex space-x-1">
-                        <button onClick={() => handleOpenEditModal(vaccination)} className="p-2 text-gray-400 hover:text-cyan-600 rounded-full hover:bg-gray-100">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDeleteVaccination(vaccination.id)} disabled={deleteVaccinationMutation.isPending && deleteVaccinationMutation.variables?.vaccinationId === vaccination.id} className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 disabled:opacity-50">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {vaccinations?.map(vaccination => (
+            <VaccinationCard
+              key={vaccination.id}
+              vaccination={vaccination}
+              member={memberMap.get(vaccination.member_id)}
+              activeFamilyId={activeFamily?.id}
+              onEdit={() => handleOpenEditModal(vaccination)}
+
+              onDelete={() => handleDeleteVaccination(vaccination.id)}
+
+              isDeleting={
+                deleteVaccinationMutation.isPending &&
+                deleteVaccinationMutation.variables?.vaccinationId === vaccination.id
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -186,7 +260,7 @@ const VaccinationFormModal: React.FC<VaccinationFormModalProps> = ({ isOpen, onC
 
           <div className="pt-6 flex justify-end space-x-4">
             <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Cancelar</button>
-            <button type="submit" disabled={isLoading} className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center">
+            <button type="submit" disabled={isLoading} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center">
               {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>}
               {initialData ? 'Guardar cambios' : 'Agregar vacuna'}
             </button>

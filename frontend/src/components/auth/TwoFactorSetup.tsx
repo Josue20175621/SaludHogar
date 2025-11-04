@@ -13,7 +13,6 @@ const TwoFactorSetup = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [qrData, setQrData] = useState<TOTPSetup | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
   const navigate = useNavigate();
@@ -51,7 +50,6 @@ const TwoFactorSetup = () => {
         secret: qrData.secret,
         totp_code: verificationCode
       });
-      setSuccess('¡2FA ha sido habilitado exitosamente!');
       setStep(3);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al verificar el código');
@@ -72,7 +70,6 @@ const TwoFactorSetup = () => {
     setQrData(null);
     setVerificationCode('');
     setError('');
-    setSuccess('');
   };
 
   if (step === 1) {
@@ -263,13 +260,6 @@ const TwoFactorSetup = () => {
               <p className="text-gray-600 mb-6">
                 Tu cuenta ahora está protegida con autenticación de dos factores
               </p>
-
-              {/* Success Message */}
-              {success && (
-                <div className="text-emerald-600 text-sm text-center bg-emerald-50 p-3 rounded-lg mb-6">
-                  {success}
-                </div>
-              )}
 
               {/* Important Info */}
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">

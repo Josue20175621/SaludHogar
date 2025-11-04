@@ -18,21 +18,26 @@ function Register() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [emailError, setEmailError] = useState<boolean>(false);
+
   const navigate = useNavigate();
 
   const prevStep = () => setStep(prev => prev - 1);
+  const regex = /^[a-zA-Z0-9]+(?:[._-][a-zA-Z0-9]+)*@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
 
   const handleNextStep = () => {
     if (!first_name.trim() || !last_name.trim() || !email.trim()) {
       notify('Por favor, completa tu nombre, apellido, nombre de familia y correo electrónico.', 'error');
       return;
     }
-    
-    // A simple email format check
-    if (!/\S+@\S+\.\S+/.test(email)) {
-        notify('Por favor, introduce una dirección de correo electrónico válida.', 'error');
-        return;
+
+    if (!regex.test(email)) {
+      notify('Por favor, introduce una dirección de correo electrónico válida.', 'error');
+      setEmailError(true);
+      return false;
     }
+
+    setEmailError(false);
     setStep(prev => prev + 1);
   };
 
@@ -51,7 +56,7 @@ function Register() {
 
     if (password.length < 8) {
       notify('La contraseña debe tener al menos 8 caracteres.', 'error');
-      return; // Stop the submission
+      return;
     }
 
     setIsLoading(true);
@@ -59,11 +64,11 @@ function Register() {
     const defaultFamilyName = `La Familia ${last_name}`;
 
     try {
-      await authApi.post('/register', { 
-        first_name: first_name, 
+      await authApi.post('/register', {
+        first_name: first_name,
         last_name: last_name,
         family_name: defaultFamilyName,
-        email, 
+        email,
         password,
       });
       await fetchAndSetUser();
@@ -151,14 +156,18 @@ function Register() {
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setEmailError(false);
+                      }}
                       placeholder="tu@ejemplo.com"
                       required
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white/50"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white/50 ${emailError ? 'border-red-500' : 'border-gray-200'
+                        }`}
                     />
                   </div>
                 </div>
-                
+
                 <button
                   type="button"
                   onClick={handleNextStep}
@@ -218,7 +227,7 @@ function Register() {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-4">
                   <button
                     type="button"

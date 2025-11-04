@@ -97,9 +97,7 @@ const Dashboard: React.FC = () => {
                             <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Próximas citas</p>
                             <p className="text-2xl sm:text-3xl font-bold text-green-600">{stats?.upcoming_appointment_count || 0}</p>
                             {(stats?.upcoming_appointment_count || 0) > 3 && (
-                                <button
-                                    onClick={() => navigate('/app/appointments')}
-                                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                                <button className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer">
                                     Ver todas
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
@@ -120,9 +118,7 @@ const Dashboard: React.FC = () => {
                             <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Medicamentos activos</p>
                             <p className="text-2xl sm:text-3xl font-bold text-purple-600">{stats?.active_medication_count || 0}</p>
                             {(stats?.active_medication_count || 0) > 3 && (
-                            <button
-                                onClick={() => navigate('/app/medications')}
-                                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                            <button className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer">
                                 Ver todos
                                 <ArrowRight className="w-4 h-4" />
                             </button>

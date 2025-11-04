@@ -31,8 +31,8 @@ function Notification({ message, type, onClose }: NotificationProps) {
   const isSuccess = type === 'success';
 
   const containerClasses = `
-    fixed top-5 right-5 w-full max-w-sm p-4 rounded-lg shadow-lg flex items-start gap-4 z-50
-    transition-all duration-300 ease-in-out transform
+    fixed top-5 left-1/2 w-full max-w-sm p-4 rounded-lg shadow-lg flex items-start gap-4 z-50
+    transition-all duration-300 ease-in-out transform -translate-x-1/2
     ${isSuccess ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}
     ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-5'}
   `;
