@@ -11,7 +11,7 @@ export const MemberAppointments: React.FC<MemberAppointmentsProps> = ({ memberId
   const { data: memberAppointments, isLoading } = useMemberAppointments(parseInt(memberId));
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border">
+    <div className="bg-white rounded-lg shadow-sm">
       <header className="p-4 border-b">
          <h3 className="text-lg font-semibold">Citas</h3>
       </header>

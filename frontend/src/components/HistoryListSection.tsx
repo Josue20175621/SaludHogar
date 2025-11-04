@@ -1,5 +1,4 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
 
 interface HistoryListSectionProps<T> {
   title: string;
@@ -15,7 +14,7 @@ export function HistoryListSection<T extends { id: number }>({
   renderItem,
 }: HistoryListSectionProps<T>) {
   return (
-    <div className="bg-white shadow-sm border rounded-lg">
+    <div className="bg-white rounded-lg shadow-sm">
       <header className="flex justify-between items-center p-4 border-b">
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
       </header>

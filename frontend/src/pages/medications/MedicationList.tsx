@@ -26,7 +26,7 @@ const MedicationList: React.FC<MedicationListProps> = ({ medications, isLoading 
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-2">
       {medications.map(medication => (
         <MedicationCardReadOnly
           key={medication.id}

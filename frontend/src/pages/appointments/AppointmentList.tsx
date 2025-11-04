@@ -1,7 +1,6 @@
 import React from 'react';
 import type { Appointment } from '../../types/family';
-import { Edit, Trash2, Clock, MapPin } from 'lucide-react';
-import { useFamilyMembers } from '../../hooks/family';
+import { Clock } from 'lucide-react';
 import { formatDateTime } from '../../utils/formatters';
 
 interface AppointmentListProps {
@@ -10,8 +9,6 @@ interface AppointmentListProps {
 }
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isLoading }) => {
-  const { memberMap } = useFamilyMembers();
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">

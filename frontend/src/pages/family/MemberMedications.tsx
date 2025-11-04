@@ -11,8 +11,7 @@ export const MemberMedications: React.FC<MemberMedicationsProps> = ({ memberId }
   const { data: memberMedications, isLoading } = useMemberMedications(parseInt(memberId));
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border">
-      {/* We can add a header specific to this context if we want */}
+    <div className="bg-white rounded-lg shadow-sm">
       <header className="p-4 border-b">
          <h3 className="text-lg font-semibold">Medicamentos</h3>
       </header>

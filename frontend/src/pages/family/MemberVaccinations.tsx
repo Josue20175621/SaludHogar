@@ -11,7 +11,7 @@ export const MemberVaccinations: React.FC<MemberVaccinationsProps> = ({ memberId
   const { data: memberVaccinations, isLoading } = useMemberVaccinations(parseInt(memberId));
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border">
+    <div className="bg-white rounded-lg shadow-sm">
       <header className="p-4 border-b">
          <h3 className="text-lg font-semibold">Vacunas</h3>
       </header>
