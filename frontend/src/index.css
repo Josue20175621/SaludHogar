@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+@keyframes flash-blue {
+  0% {
+    /* Uses light blue colors, similar to Tailwind's blue-100 and blue-300 */
+    background-color: #DBEAFE; 
+    border-color: #93C5FD;
+  }
+  100% {
+    /* Fades back to the default white background and gray border */
+    background-color: #FFFFFF;
+    border-color: #E5E7EB;
+  }
+}
+
+.flash-new {
+  animation: flash-blue 700ms ease-out;
+}

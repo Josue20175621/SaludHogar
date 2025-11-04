@@ -1,5 +1,3 @@
-import sys
-import os
 import asyncio
 from datetime import datetime, timedelta, timezone
 
@@ -45,9 +43,8 @@ async def find_upcoming_appointments_and_notify():
                 
                 for membership in memberships:
                     member_name = f"{appt.member.first_name} {appt.member.last_name}"
-                    appt_time_local = appt.appointment_date # This will be in UTC
                     
-                    message = f"Recordatorio: Cita para {member_name} con {appt.doctor_name} pronto."
+                    message = f"Recordatorio: Cita para {member_name} con {appt.doctor_name}."
 
                     new_notification = Notification(
                         user_id=membership.user_id,
