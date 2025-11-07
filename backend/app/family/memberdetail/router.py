@@ -1,4 +1,3 @@
-from babel.dates import format_datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,15 +6,26 @@ from typing import List
 import mimetypes
 from pathlib import Path
 from datetime import datetime
+import os
 
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib.colors import black, red, blue, darkgreen
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-from reportlab.lib import colors
 from io import BytesIO
+from babel.dates import format_date, format_datetime
+
+from reportlab.platypus import (
+    Paragraph,
+    Spacer,
+    Image,
+    Table,
+    TableStyle,
+    BaseDocTemplate,
+    Frame,
+    PageTemplate,
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import A4
 
 from app.database import get_db
 from app.family.dependencies import get_target_member
@@ -185,314 +195,256 @@ async def generate_medical_report(
         report_generated_at=datetime.now(),
     )
 
+class MedicalReportStyler:
+    
+    # Paleta de Colores 
+    PRIMARY_COLOR = colors.HexColor("#0d6efd")
+    SECONDARY_COLOR = colors.HexColor("#6c757d")
+    BACKGROUND_COLOR = colors.HexColor("#f8f9fa")
+    TEXT_COLOR = colors.HexColor("#212529")
+    HEADER_TEXT_COLOR = colors.white
+    BORDER_COLOR = colors.HexColor("#dee2e6")
+    DANGER_COLOR = colors.HexColor("#dc3545")
+
+    def __init__(self, assets_path="assets"):
+        self.assets_path = assets_path
+        self.styles = self._create_styles()
+
+    def _get_asset_path(self, asset_name: str) -> str:
+        path = os.path.join(self.assets_path, asset_name) # Esperemos que exista ese asset
+        return path
+        
+    def _create_styles(self) -> dict:
+        styles = getSampleStyleSheet()
+        
+        base_style = dict(textColor=self.TEXT_COLOR, fontName="Helvetica")
+        
+        return {
+            "Title": ParagraphStyle("Title", parent=styles["h1"], fontSize=22, alignment=TA_CENTER, textColor=self.PRIMARY_COLOR, spaceAfter=20),
+            "Normal": ParagraphStyle("Normal", parent=styles["Normal"], **base_style),
+            "NormalRight": ParagraphStyle("NormalRight", parent=styles["Normal"], alignment=TA_LEFT, **base_style),
+            "TableHeader": ParagraphStyle("TableHeader", parent=styles["Normal"], textColor=self.HEADER_TEXT_COLOR, fontName="Helvetica-Bold"),
+            "TableCell": ParagraphStyle("TableCell", parent=styles["Normal"], **base_style),
+            "SectionHeader": ParagraphStyle("SectionHeader", parent=styles["h2"], fontSize=14, textColor=self.PRIMARY_COLOR, fontName="Helvetica-Bold"),
+        }
+
+    def header_footer(self, canvas, doc):
+        canvas.saveState()
+        
+        page_width, page_height = doc.pagesize
+
+        # Encabezado 
+        header_y_position = page_height - 0.5 * inch
+
+        header_text = Paragraph("Informe Médico Confidencial", self.styles["NormalRight"])
+        w, h = header_text.wrap(doc.width, doc.topMargin)
+        header_text.drawOn(canvas, doc.leftMargin, header_y_position - h)
+
+        line_y_position = page_height - 0.7 * inch
+        canvas.setStrokeColor(self.BORDER_COLOR)
+        canvas.line(doc.leftMargin, line_y_position, doc.leftMargin + doc.width, line_y_position)
+
+        footer_text = Paragraph(f"Página {doc.page}", self.styles["Normal"])
+        w, h = footer_text.wrap(doc.width, doc.bottomMargin)
+        footer_text.drawOn(canvas, doc.leftMargin, 0.5 * inch)
+        
+        canvas.restoreState()
+
+    def create_section_header(self, title: str, icon_name: str) -> Table:
+        icon_path = self._get_asset_path(f"icons/{icon_name}")
+        icon = Image(icon_path, width=0.25 * inch, height=0.25 * inch)
+        
+        title_p = Paragraph(title, self.styles["SectionHeader"])
+        
+        return Table([[icon, title_p]], colWidths=[0.4 * inch, None], style=[('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+
+    def create_data_table(self, headers: list, data: list, col_widths=None) -> Table:
+        header_ps = [Paragraph(h, self.styles["TableHeader"]) for h in headers]
+        data_ps = [
+            [Paragraph(str(cell), self.styles["TableCell"]) for cell in row]
+            for row in data
+        ]
+        
+        table_data = [header_ps] + data_ps
+        
+        tbl = Table(table_data, colWidths=col_widths)
+        tbl.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), self.PRIMARY_COLOR),
+            ('GRID', (0, 0), (-1, -1), 1, self.BORDER_COLOR),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.BACKGROUND_COLOR]),
+        ]))
+        return tbl
+        
+    def create_info_card(self, header: Table, content_flowable) -> Table:
+        card_content = [
+            [header],
+            [content_flowable]
+        ]
+        
+        return Table(
+            card_content, 
+            style=[
+                ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 1), (-1, -1), 10) 
+            ], 
+            spaceBefore=15, 
+            colWidths=['100%'],
+            splitByRow=0
+        )
+
 @router.get("/medical-report/pdf")
 async def generate_medical_report_pdf(
     target_member: FamilyMember = Depends(get_target_member),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Generate a PDF version of the medical report,
-    streaming the bytes back with Content-Disposition.
+    Genera una versión en PDF del informe médico con un diseño mejorado.
     """
     report = await generate_medical_report(target_member, db)
-
-    # --- build PDF in memory ---
+    
     buf = BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    styler = MedicalReportStyler()
 
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        "Title",
-        parent=styles["Heading1"],
-        fontSize=20,
-        alignment=TA_CENTER,
-        textColor=colors.darkgreen,
-        spaceAfter=12,
-    )
-    section_style = ParagraphStyle(
-        "SectionHeader",
-        parent=styles["Heading2"],
-        fontSize=14,
-        textColor=colors.coral,
-        spaceBefore=18,
-        spaceAfter=6,
-    )
-    normal = styles["Normal"]
+    doc = BaseDocTemplate(buf, pagesize=A4, rightMargin=inch, leftMargin=inch, topMargin=inch, bottomMargin=inch)
+    frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
+    template = PageTemplate(id='main', frames=frame, onPage=styler.header_footer)
+    doc.addPageTemplates([template])
 
-    spanish_date = format_datetime( report.report_generated_at,  "d 'de' MMMM 'de' y 'a las' h:mm a", locale='es')
     elems = []
-    elems.append(Paragraph("INFORME MÉDICO", title_style))
-    elems.append(Spacer(1, 12))
-    elems.append(
-        Paragraph(
-            f"Generado el: {spanish_date}",
-            normal,
-        )
-    )
-    elems.append(Spacer(1, 24))
+    
+    # Título e Información General
+    elems.append(Paragraph("Informe Médico", styler.styles["Title"]))
+    spanish_date = format_datetime(report.report_generated_at, "d 'de' MMMM 'de' y 'a las' h:mm a", locale='es')
+    elems.append(Paragraph(f"<b>Fecha de generación:</b> {spanish_date}", styler.styles["Normal"]))
+    elems.append(Spacer(1, 0.3 * inch))
 
-    # Información Personal
+    # Sección: Información Personal y Social
     pi = report.personal_information
-    elems.append(Paragraph("INFORMACIÓN PERSONAL", section_style))
-    data = [
-        ["Nombre completo:", f"{pi.first_name} {pi.last_name}"],
-        ["Fecha de nacimiento:", str(pi.birth_date) if pi.birth_date else "—"],
-        ["Género:", pi.gender or "—"],
-        ["Parentesco:", pi.relation or "—"],
-        ["Tipo de sangre:", pi.blood_type or "—"],
-        ["Teléfono:", pi.phone_number or "—"],
+    header = styler.create_section_header("Información del Paciente", "user.png")
+    
+    text_data_list = [
+        [Paragraph("<b>Nombre completo:</b>", styler.styles["Normal"]), Paragraph(f"{pi.first_name} {pi.last_name}", styler.styles["Normal"])],
+        [Paragraph("<b>Fecha de nacimiento:</b>", styler.styles["Normal"]), Paragraph(format_date(pi.birth_date, "d 'de' MMMM 'de' y", locale='es') if pi.birth_date else "—", styler.styles["Normal"])],
+        [Paragraph("<b>Género:</b>", styler.styles["Normal"]), Paragraph(pi.gender or "—", styler.styles["Normal"])],
+        [Paragraph("<b>Tipo de sangre:</b>", styler.styles["Normal"]), Paragraph(pi.blood_type or "—", styler.styles["Normal"])],
+        [Paragraph("<b>Uso de Tabaco:</b>", styler.styles["Normal"]), Paragraph(pi.tobacco_use or "—", styler.styles["Normal"])],
+        [Paragraph("<b>Consumo de Alcohol:</b>", styler.styles["Normal"]), Paragraph(pi.alcohol_use or "—", styler.styles["Normal"])],
+        [Paragraph("<b>Ocupación:</b>", styler.styles["Normal"]), Paragraph(pi.occupation or "—", styler.styles["Normal"])],
     ]
-    tbl = Table(data)
-    tbl.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    text_data_table = Table(text_data_list, colWidths=['35%', '65%'], style=[('VALIGN', (0,0), (-1,-1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 0)])
+
+    profile_pic_path = _resolve_member_photo(target_member)
+    content = None
+
+    if profile_pic_path:
+        profile_image = Image(profile_pic_path, width=1.1*inch, height=1.1*inch)
+        profile_image.hAlign = 'CENTER'
+        
+        content = Table(
+            [[text_data_table, profile_image]],
+            colWidths=['*', 1.3 * inch],
+            style=[
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('VALIGN', (0,1), (0,1), 'MIDDLE') 
             ]
         )
-    )
-    elems.append(tbl)
-
-    elems.append(Spacer(1, 24))
-
-    # Sección de Historial Social
-    elems.append(Paragraph("HISTORIAL SOCIAL", section_style))
-
-    social_data = [
-        ["Uso de Tabaco:", pi.tobacco_use or "No especificado"],
-        ["Consumo de Alcohol:", pi.alcohol_use or "No especificado"],
-        ["Ocupación:", pi.occupation or "No especificado"]
-    ]
-
-    social_table = Table(social_data)
-    social_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    elems.append(social_table)
-
-    elems.append(Spacer(1, 24))
-
-    # Alergias
-    elems.append(Paragraph(f"ALERGIAS ({len(report.allergies)})", section_style))
-    if report.allergies:
-        data = [["Categoría", "Alergeno", "Reacción", "¿Grave?"]]
-        for a in report.allergies:
-            data.append(
-                [
-                    a.category,
-                    a.name,
-                    a.reaction or "—",
-                    "Sí" if a.is_severe else "No",
-                ]
-            )
-        tbl = Table(data)
-        tbl.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                ]
-            )
-        )
-        elems.append(tbl)
     else:
-        elems.append(Paragraph("No hay alergias registradas.", normal))
-    elems.append(Spacer(1, 24))
+        content = text_data_table
     
-    # Current Medications Section
-    elems.append(Paragraph(f"MEDICAMENTOS ACTUALES", section_style))
+    elems.append(styler.create_info_card(header, content))
 
+    # Seccion: Alergias
+    if report.allergies:
+        header = styler.create_section_header(f"Alergias ({len(report.allergies)})", "allergy.png")
+        headers = ["Alérgeno", "Reacción", "Gravedad"]
+        data = []
+        for a in report.allergies:
+            severity = f"<font color='{styler.DANGER_COLOR.hexval()}'><b>Grave</b></font>" if a.is_severe else "Leve"
+            data.append([f"<b>{a.name}</b><br/>({a.category})", a.reaction or "—", severity])
+        content = styler.create_data_table(headers, data, col_widths=['35%', '45%', '20%'])
+        elems.append(styler.create_info_card(header, content))
+        
+    # Seccion: Medicamentos Actuales
     if report.current_medications:
-        med_data = [["Medicamento", "Dosis", "Frecuencia", "Prescrito por"]]
-        for med in report.current_medications:
-            med_data.append([
-                med.name,
-                med.dosage,
-                med.frequency,
-                med.prescribed_by or "No especificado"
-            ])
-        
-        med_table = Table(med_data)
-        med_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        elems.append(med_table)
-    else:
-        elems.append(Paragraph("No hay medicamentos actuales registrados.", normal))
+        header = styler.create_section_header("Medicamentos Actuales", "medication.png")
+        headers = ["Medicamento", "Dosis y Frecuencia", "Prescrito por"]
+        data = [[m.name, f"{m.dosage} - {m.frequency}", m.prescribed_by or "—"] for m in report.current_medications]
+        content = styler.create_data_table(headers, data)
+        elems.append(styler.create_info_card(header, content))
 
-    # Sección de Historial de Vacunación
-    elems.append(Paragraph(f"HISTORIAL DE VACUNACIÓN", section_style))
-
+    # Seccion: Historial de Vacunación
     if report.vaccination_history:
-        vax_data = [["Vacuna", "Fecha de Administración", "Administrado Por"]]
-        for vax in report.vaccination_history:
-            vax_data.append([
-                vax.vaccine_name,
-                str(vax.date_administered),
-                vax.administered_by or "No especificado"
-            ])
-        
-        vax_table = Table(vax_data)
-        vax_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        elems.append(vax_table)
-    else:
-        elems.append(Paragraph("No hay registros de vacunación en el archivo.", normal))
+        header = styler.create_section_header("Historial de Vacunación", "vaccine.png")
+        headers = ["Vacuna", "Fecha", "Administrado por"]
+        data = [[v.vaccine_name, v.date_administered.strftime('%d/%m/%Y'), v.administered_by or "—"] for v in report.vaccination_history]
+        content = styler.create_data_table(headers, data)
+        elems.append(styler.create_info_card(header, content))
 
-    elems.append(Spacer(1, 20))
-
-    # Sección de Condiciones
-    elems.append(Paragraph(f"CONDICIONES", section_style))
-    """
-    styles = getSampleStyleSheet()
-    table_cell_style = styles["Normal"]
-    table_cell_style.fontSize = 9
-    table_cell_style.leading = 11
-    """
-
+    # Seccion: Condiciones Crónicas
     if report.chronic_conditions:
-        condition_data = [["Condición", "Fecha de Diagnóstico", "Estado", "Notas"]]
-        for condition in report.chronic_conditions:
-            status = "Activa" if condition.is_active else "Inactiva"
-            
-            condition_data.append([
-                condition.name,
-                str(condition.date_diagnosed),
-                status,
-                condition.notes or "Ninguna"
-            ])
-        
-        condition_table = Table(condition_data)
-        condition_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        elems.append(condition_table)
-    else:
-        elems.append(Paragraph("No hay condiciones registradas.", normal))
+        header = styler.create_section_header("Condiciones Médicas", "condition.png")
+        headers = ["Condición", "Diagnóstico", "Estado", "Notas"]
+        data = []
+        for c in report.chronic_conditions:
+            status = "Activa" if c.is_active else "Inactiva"
+            data.append([c.name, c.date_diagnosed.strftime('%d/%m/%Y'), status, c.notes or "—"])
+        content = styler.create_data_table(headers, data, col_widths=['25%', '15%', '15%', '45%'])
+        elems.append(styler.create_info_card(header, content))
 
-    elems.append(Spacer(1, 20))
-
-    # Sección de Historial Quirúrgico
-    elems.append(Paragraph(f"HISTORIAL QUIRÚRGICO", section_style))
-
+    # Seccion: Historial Quirúrgico
     if report.surgical_history:
-        surgery_data = [["Procedimiento", "Fecha", "Cirujano", "Centro Médico"]]
-        for surgery in report.surgical_history:
-            surgery_data.append([
-                surgery.name,
-                str(surgery.date_of_procedure),
-                surgery.surgeon_name or "No especificado",
-                surgery.facility_name or "No especificado"
-            ])
-        
-        surgery_table = Table(surgery_data)
-        surgery_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        elems.append(surgery_table)
-    else:
-        elems.append(Paragraph("No hay historial quirúrgico registrado.", normal))
+        header = styler.create_section_header("Historial Quirúrgico", "surgery.png")
+        headers = ["Procedimiento", "Fecha", "Cirujano", "Centro Médico"]
+        data = [
+            [
+                s.name,
+                s.date_of_procedure.strftime('%d/%m/%Y'),
+                s.surgeon_name or "—",
+                s.facility_name or "—"
+            ] for s in report.surgical_history
+        ]
+        content = styler.create_data_table(headers, data, col_widths=['40%', '20%', '20%', '20%'])
+        elems.append(styler.create_info_card(header, content))
 
-    elems.append(Spacer(1, 20))
-
-    # Sección de Hospitalizaciones
-    elems.append(Paragraph(f"HOSPITALIZACIONES", section_style))
-
+    # Seccion: Hospitalizaciones
     if report.hospitalizations:
-        hosp_data = [["Motivo", "Fecha de Ingreso", "Fecha de Alta", "Centro Médico"]]
-        for hosp in report.hospitalizations:
-            hosp_data.append([
-                hosp.reason,
-                str(hosp.admission_date),
-                str(hosp.discharge_date) if hosp.discharge_date else "No especificado",
-                hosp.facility_name or "No especificado"
-            ])
-        
-        hosp_table = Table(hosp_data)
-        hosp_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        elems.append(hosp_table)
-    else:
-        elems.append(Paragraph("No hay registros de hospitalización en el archivo.", normal))
+        header = styler.create_section_header("Hospitalizaciones", "hospital.png")
+        headers = ["Motivo", "Fecha de Ingreso", "Fecha de Alta", "Centro Médico"]
+        data = [
+            [
+                h.reason,
+                h.admission_date.strftime('%d/%m/%Y'),
+                h.discharge_date.strftime('%d/%m/%Y') if h.discharge_date else "—",
+                h.facility_name or "—"
+            ] for h in report.hospitalizations
+        ]
+        content = styler.create_data_table(headers, data, col_widths=['40%', '20%', '20%', '20%'])
+        elems.append(styler.create_info_card(header, content))
 
-    elems.append(Spacer(1, 20))
-
-    # Sección de Historial Médico Familiar
-    elems.append(Paragraph(f"HISTORIAL MÉDICO FAMILIAR", section_style))
-
+    # Seccion: Historial Médico Familiar
     if report.family_medical_history:
-        fh_data = [["Condición", "Pariente", "Notas"]]
-        for fh in report.family_medical_history:
-            fh_data.append([
-                fh.condition_name,
-                fh.relative,
-                fh.notes or "Ninguna"
-            ])
-        
-        fh_table = Table(fh_data)
-        fh_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        elems.append(fh_table)
-    else:
-        elems.append(Paragraph("No hay historial médico familiar registrado.", normal))
+        header = styler.create_section_header("Historial Médico Familiar", "family.png")
+        headers = ["Condición", "Pariente", "Notas"]
+        data = [
+            [
+                f.condition_name,
+                f.relative,
+                f.notes or "—"
+            ] for f in report.family_medical_history
+        ]
+        content = styler.create_data_table(headers, data, col_widths=['30%', '20%', '50%'])
+        elems.append(styler.create_info_card(header, content))
 
-    elems.append(Spacer(1, 20))
-
-    # Build and stream
+    # Construir y enviar el PDF
     doc.build(elems)
     buf.seek(0)
 
