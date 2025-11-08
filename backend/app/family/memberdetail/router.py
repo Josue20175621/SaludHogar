@@ -127,6 +127,8 @@ async def get_member_vaccinations(
     vaccinations = result.scalars().all()
     return vaccinations
 
+def fmt_date(d): return d.strftime('%d/%m/%Y') if d else "—"
+
 @router.get("/medical-report", response_model=MedicalReport)
 async def generate_medical_report(
     target_member: FamilyMember = Depends(get_target_member),
@@ -364,7 +366,7 @@ async def generate_medical_report_pdf(
 
     # Seccion: Alergias
     if report.allergies:
-        header = styler.create_section_header(f"Alergias ({len(report.allergies)})", "allergy.png")
+        header = styler.create_section_header(f"Alergias", "allergy.png")
         headers = ["Alérgeno", "Reacción", "Gravedad"]
         data = []
         for a in report.allergies:
@@ -385,7 +387,7 @@ async def generate_medical_report_pdf(
     if report.vaccination_history:
         header = styler.create_section_header("Historial de Vacunación", "vaccine.png")
         headers = ["Vacuna", "Fecha", "Administrado por"]
-        data = [[v.vaccine_name, v.date_administered.strftime('%d/%m/%Y'), v.administered_by or "—"] for v in report.vaccination_history]
+        data = [[v.vaccine_name, fmt_date(v.date_administered), v.administered_by or "—"] for v in report.vaccination_history]
         content = styler.create_data_table(headers, data)
         elems.append(styler.create_info_card(header, content))
 
@@ -396,7 +398,7 @@ async def generate_medical_report_pdf(
         data = []
         for c in report.chronic_conditions:
             status = "Activa" if c.is_active else "Inactiva"
-            data.append([c.name, c.date_diagnosed.strftime('%d/%m/%Y'), status, c.notes or "—"])
+            data.append([c.name, fmt_date(c.date_diagnosed), status, c.notes or "—"])
         content = styler.create_data_table(headers, data, col_widths=['25%', '15%', '15%', '45%'])
         elems.append(styler.create_info_card(header, content))
 
@@ -407,7 +409,7 @@ async def generate_medical_report_pdf(
         data = [
             [
                 s.name,
-                s.date_of_procedure.strftime('%d/%m/%Y'),
+                fmt_date(s.date_of_procedure),
                 s.surgeon_name or "—",
                 s.facility_name or "—"
             ] for s in report.surgical_history
@@ -422,8 +424,8 @@ async def generate_medical_report_pdf(
         data = [
             [
                 h.reason,
-                h.admission_date.strftime('%d/%m/%Y'),
-                h.discharge_date.strftime('%d/%m/%Y') if h.discharge_date else "—",
+                fmt_date(h.admission_date),
+                fmt_date(h.discharge_date),
                 h.facility_name or "—"
             ] for h in report.hospitalizations
         ]

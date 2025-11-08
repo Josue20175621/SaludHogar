@@ -98,11 +98,12 @@ export interface Hospitalization {
   id: number;
   member_id: number;
   reason: string;
-  admission_date: string;
-  discharge_date?: string;
-  facility_name?: string;
-  notes?: string;
+  admission_date: string | null;
+  discharge_date?: string | null;
+  facility_name?: string | null;
+  notes?: string | null;
 }
+
 
 export interface FamilyHistoryCondition {
   id: number;

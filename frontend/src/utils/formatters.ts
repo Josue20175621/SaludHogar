@@ -9,13 +9,15 @@ export const calculateAge = (birthDate: string) => {
   return age;
 };
 
-export const formatDate = (dateString: string) => {
+export const formatDate = (dateString?: string | null) => {
+  if (!dateString) return 'N/D';
   return new Date(dateString).toLocaleDateString('es-DO', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   });
 };
+
 
 export const formatDateTime = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('es-DO', {

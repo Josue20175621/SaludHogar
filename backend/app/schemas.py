@@ -186,7 +186,7 @@ class AllergyBase(BaseModel):
     is_severe: bool = False
 
 class AllergyCreate(AllergyBase):
-    member_id: int
+    pass # member_id se obtiene del path (no del body)
 
 class AllergyUpdate(BaseModel):
     category: Optional[str] = None
@@ -208,7 +208,7 @@ class ConditionBase(BaseModel):
     notes: Optional[str] = None
 
 class ConditionCreate(ConditionBase):
-    member_id: int
+    pass
 
 class ConditionUpdate(BaseModel):
     name: Optional[str] = None
@@ -231,7 +231,7 @@ class SurgeryBase(BaseModel):
     notes: Optional[str] = None
 
 class SurgeryCreate(SurgeryBase):
-    member_id: int
+    pass
 
 class SurgeryUpdate(BaseModel):
     name: Optional[str] = None
@@ -255,7 +255,7 @@ class HospitalizationBase(BaseModel):
     notes: Optional[str] = None
 
 class HospitalizationCreate(HospitalizationBase):
-    member_id: int
+    pass
 
 class HospitalizationUpdate(BaseModel):
     reason: Optional[str] = None
@@ -273,7 +273,7 @@ class HospitalizationOut(HospitalizationBase):
 
 class FamilyHistoryConditionBase(BaseModel):
     condition_name: str
-    relative: str # e.g., "Mother", "Father", "Paternal Grandfather"
+    relative: str
     notes: Optional[str] = None
 
 class FamilyHistoryConditionCreate(FamilyHistoryConditionBase):
