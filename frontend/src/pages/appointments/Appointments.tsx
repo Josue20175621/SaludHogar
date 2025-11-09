@@ -380,7 +380,7 @@ const AppointmentFormModal: React.FC<AppointmentFormModalProps> = ({ isOpen, onC
   const inputStyle = "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-lg">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">{initialData ? 'Editar Cita' : 'Programar Nueva Cita'}</h2>
         {/* Formulario */}
