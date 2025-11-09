@@ -89,13 +89,6 @@ const Medications: React.FC = () => {
     <div className="space-y-8 md:p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-800">Medicamentos</h2>
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-purple-600 text-white rounded-full p-3 sm:rounded-lg sm:px-4 sm:py-2 flex items-center sm:space-x-2 transition-colors hover:bg-purple-700 fixed bottom-6 right-6 sm:static shadow-lg sm:shadow-none z-30 cursor-pointer"
-        >
-          <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline font-semibold">Agregar medicamento</span>
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -109,6 +102,20 @@ const Medications: React.FC = () => {
             onDelete={handleOpenDeleteModal}
           />
         ))}
+      </div>
+
+      <div className="group fixed bottom-6 right-6 z-30">
+        <button
+          onClick={handleOpenAddModal}
+          className="bg-purple-600 text-white rounded-full p-3 flex items-center justify-center transition-all duration-300 hover:bg-purple-700 shadow-lg hover:shadow-xl hover:scale-110"
+          aria-label="Agregar medicamento"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+
+        <span className="absolute bottom-full right-0 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          Agregar medicamento
+        </span>
       </div>
 
       {isModalOpen && (
@@ -336,7 +343,7 @@ const MedicationFormModal: React.FC<MedicationFormModalProps> = ({ isOpen, onClo
               id="member_id"
               value={formData.member_id}
               onChange={handleChange}
-              required              
+              required
               disabled={!!initialData}
               className={`${inputStyle} ${initialData ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
