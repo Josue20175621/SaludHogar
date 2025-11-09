@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import React, { useState } from 'react';
-import { Calendar, User, Beaker, Repeat, Clock } from 'lucide-react';
+import { Plus, Calendar, User, Beaker, Repeat, Clock, Pencil, Trash2 } from 'lucide-react';
 import type { Medication, FamilyMember } from '../../types/family';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
@@ -11,6 +11,7 @@ import {
   useUpdateMedication,
   useDeleteMedication,
 } from '../../hooks/medications';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 const Medications: React.FC = () => {
   const { activeFamily } = useAuth();
@@ -19,6 +20,9 @@ const Medications: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [medicationToDelete, setMedicationToDelete] = useState<Medication | null>(null);
 
   const addMedicationMutation = useAddMedication();
   const updateMedicationMutation = useUpdateMedication();
@@ -32,6 +36,16 @@ const Medications: React.FC = () => {
   const handleOpenEditModal = (medication: Medication) => {
     setEditingMedication(medication);
     setIsModalOpen(true);
+  };
+
+  const handleOpenDeleteModal = (medication: Medication) => {
+    setMedicationToDelete(medication);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setMedicationToDelete(null);
+    setIsDeleteModalOpen(false);
   };
 
   const handleFormSubmit = (formData: any) => {
@@ -50,11 +64,17 @@ const Medications: React.FC = () => {
     }
   };
 
-  const handleDeleteMedication = (medicationId: number) => {
-    if (!activeFamily) return;
-    if (window.confirm('Are you sure you want to delete this medication record?')) {
-      deleteMedicationMutation.mutate({ familyId: activeFamily.id, medicationId });
-    }
+  const handleConfirmDelete = () => {
+    if (!activeFamily || !medicationToDelete) return;
+
+    deleteMedicationMutation.mutate(
+      { familyId: activeFamily.id, medicationId: medicationToDelete.id },
+      {
+        onSuccess: () => {
+          handleCloseDeleteModal();
+        }
+      }
+    );
   };
 
   if (isLoadingMedications || isLoadingMembers) {
@@ -69,6 +89,13 @@ const Medications: React.FC = () => {
     <div className="space-y-8 md:p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-800">Medicamentos</h2>
+        <button
+          onClick={handleOpenAddModal}
+          className="bg-purple-600 text-white rounded-full p-3 sm:rounded-lg sm:px-4 sm:py-2 flex items-center sm:space-x-2 transition-colors hover:bg-purple-700 fixed bottom-6 right-6 sm:static shadow-lg sm:shadow-none z-30 cursor-pointer"
+        >
+          <Plus className="w-5 h-5" />
+          <span className="hidden sm:inline font-semibold">Agregar medicamento</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -78,10 +105,31 @@ const Medications: React.FC = () => {
             medication={medication}
             member={memberMap.get(medication.member_id)}
             activeFamilyId={activeFamily?.id}
-            isDeleting={deleteMedicationMutation.isPending && deleteMedicationMutation.variables?.medicationId === medication.id}
+            onEdit={handleOpenEditModal}
+            onDelete={handleOpenDeleteModal}
           />
         ))}
       </div>
+
+      {isModalOpen && (
+        <MedicationFormModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleFormSubmit}
+          initialData={editingMedication}
+          familyMembers={Array.from(memberMap.values())}
+          isLoading={addMedicationMutation.isPending || updateMedicationMutation.isPending}
+        />
+      )}
+
+      {isDeleteModalOpen && (
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleteMedicationMutation.isPending}
+        />
+      )}
     </div>
   );
 };
@@ -89,11 +137,12 @@ const Medications: React.FC = () => {
 interface MedicationCardProps {
   medication: Medication;
   member?: FamilyMember;
-  activeFamilyId?: number
-  isDeleting: boolean;
+  activeFamilyId?: number;
+  onEdit: (medication: Medication) => void;
+  onDelete: (medication: Medication) => void;
 }
 
-const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, activeFamilyId, isDeleting }) => {
+const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, activeFamilyId, onEdit, onDelete }) => {
   // A helper to determine if the medication is currently active based on our business logic
   const isActive = () => {
     if (!medication.start_date) return false; // Must have a start date to be active
@@ -117,14 +166,10 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
     `${window.location.protocol}//${window.location.hostname}:8000`;
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}>
-      {/* Header */}
+    <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 flex flex-col">
       <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-t-xl border-b border-purple-100">
         <div className="flex items-center justify-between">
-
-          {/* Foto de perfil + detalles */}
           <div className="flex items-center">
-
             <div className="w-12 h-12 rounded-full mr-4 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
               <img
                 key={member?.id}
@@ -142,13 +187,11 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
                 }}
               />
             </div>
-
             <div>
               <h3 className="font-bold text-lg text-purple-900">{medication.name}</h3>
               <p className="text-purple-500 text-sm font-bold">{`${member?.first_name} ${member?.last_name}`}</p>
             </div>
           </div>
-
           {isActive() && (
             <span className="inline-flex items-center gap-x-1.5 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
@@ -158,10 +201,8 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 flex-grow">
         <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-
-          {/* Dosis */}
           <div className="space-y-1">
             <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
               <Beaker className="w-4 h-4 mr-1.5 text-purple-900" />
@@ -169,8 +210,6 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
             </div>
             <p className="text-base font-bold text-purple-900 pl-6">{medication.dosage}</p>
           </div>
-
-          {/* Frecuencia */}
           <div className="space-y-1">
             <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
               <Repeat className="w-4 h-4 mr-1.5 text-purple-900" />
@@ -178,8 +217,6 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
             </div>
             <p className="text-base font-bold text-purple-900 pl-6">{medication.frequency}</p>
           </div>
-
-          {/* Inicio */}
           <div className="space-y-1">
             <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
               <Calendar className="w-4 h-4 mr-1.5 text-purple-900" />
@@ -189,8 +226,6 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
               {medication.start_date ? formatDate(medication.start_date) : 'N/D'}
             </p>
           </div>
-
-          {/* Fin */}
           {medication.end_date && (
             <div className="space-y-1">
               <div className="flex items-center text-xs text-gray-500 font-semibold uppercase">
@@ -203,11 +238,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
             </div>
           )}
         </div>
-
-        {/* Divider */}
         {(medication.prescribed_by || medication.notes) && <hr className="border-gray-100" />}
-
-        {/* Doctor */}
         <div className="space-y-3">
           {medication.prescribed_by && (
             <div className="flex items-center space-x-2 text-sm">
@@ -219,13 +250,28 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, member, act
             </div>
           )}
         </div>
-
-        {/* Notes */}
         {medication.notes && (
           <div className="border-l-4 border-purple-200 bg-purple-50 p-3 rounded-r-md">
             <p className="text-sm text-purple-800 italic leading-relaxed">{medication.notes}</p>
           </div>
         )}
+      </div>
+
+      <div className="border-t border-gray-100 p-2 flex justify-end space-x-1">
+        <button
+          onClick={() => onEdit(medication)}
+          className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-colors duration-200 cursor-pointer"
+          aria-label="Editar medicamento"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => onDelete(medication)}
+          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200 cursor-pointer"
+          aria-label="Eliminar medicamento"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
@@ -278,14 +324,22 @@ const MedicationFormModal: React.FC<MedicationFormModalProps> = ({ isOpen, onClo
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">{initialData ? 'Edit Medication' : 'Add New Medication'}</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">{initialData ? 'Editar Medicamento' : 'Agregar Medicamento'}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
           {/* Menú desplegable de paciente */}
           <div>
             <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Paciente</label>
-            <select name="member_id" id="member_id" value={formData.member_id} onChange={handleChange} required className={inputStyle}>
+            <select
+              name="member_id"
+              id="member_id"
+              value={formData.member_id}
+              onChange={handleChange}
+              required              
+              disabled={!!initialData}
+              className={`${inputStyle} ${initialData ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            >
               <option value="" disabled>Selecciona un miembro de la familia...</option>
               {familyMembers.map(member => (
                 <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>
@@ -335,6 +389,15 @@ const MedicationFormModal: React.FC<MedicationFormModalProps> = ({ isOpen, onClo
             <textarea name="notes" id="notes" value={formData.notes} onChange={handleChange} rows={3} className={inputStyle}></textarea>
           </div>
 
+          <div className="pt-6 flex justify-end space-x-4">
+            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={isLoading} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center transition-colors cursor-pointer">
+              {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>}
+              {initialData ? 'Guardar Cambios' : 'Agregar Medicamento'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

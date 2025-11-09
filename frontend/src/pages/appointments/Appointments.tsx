@@ -1,15 +1,25 @@
+import type { FormEvent } from 'react'
 import React, { useState, useMemo } from 'react';
-import { Calendar, Stethoscope, MapPin} from 'lucide-react';
+import { Plus, Calendar, Stethoscope, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../../context/AuthContext';
 import {
   useFamilyAppointments,
+  useAddAppointment,
+  useUpdateAppointment,
+  useDeleteAppointment,
   useFamilyMembers,
 } from '../../hooks/appointments';
-import { type Appointment } from '../../types/family';
+import type { Appointment, FamilyMember } from '../../types/family';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 const formatAppointmentDate = (dateString: string): string => {
+  /*
+    Si la fecha de la cita es	hoy: "Hoy a las 14:00"
+    Mañana:	"Mañana a las 09:30"
+    Cualquier otro día en el futuro	"sábado, 21 de diciembre de 2025, 11:00"
+  */
   const date = new Date(dateString);
   const today = new Date();
   const tomorrow = new Date(today);
@@ -40,7 +50,73 @@ const Appointments: React.FC = () => {
     `${window.location.protocol}//${window.location.hostname}:8000`;
   const { activeFamily } = useAuth();
   const { data: allAppointments, isLoading: isLoadingAppointments } = useFamilyAppointments();
-  const { memberById: memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
+  const { members: familyMembers, memberById: memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+
+  const addAppointmentMutation = useAddAppointment();
+  const updateAppointmentMutation = useUpdateAppointment();
+  const deleteAppointmentMutation = useDeleteAppointment();
+
+  const handleOpenAddModal = () => {
+    setEditingAppointment(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (appointment: Appointment) => {
+    setEditingAppointment(appointment);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenDeleteModal = (appointment: Appointment) => {
+    setAppointmentToDelete(appointment);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setAppointmentToDelete(null);
+    setIsDeleteModalOpen(false);
+  };
+
+  const handleFormSubmit = (formData: any) => {
+    if (!activeFamily) return;
+
+    const dataToSend = { ...formData };
+
+    if (dataToSend.appointment_date) {
+      const localDate = new Date(dataToSend.appointment_date);
+      dataToSend.appointment_date = localDate.toISOString();
+    }
+
+    if (editingAppointment) {
+      updateAppointmentMutation.mutate(
+        { familyId: activeFamily.id, appointmentId: editingAppointment.id, updatedAppointment: dataToSend },
+        { onSuccess: () => setIsModalOpen(false) }
+      );
+    } else {
+      addAppointmentMutation.mutate(
+        { familyId: activeFamily.id, newAppointment: dataToSend },
+        { onSuccess: () => setIsModalOpen(false) }
+      );
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!activeFamily || !appointmentToDelete) return;
+
+    deleteAppointmentMutation.mutate(
+      { familyId: activeFamily.id, appointmentId: appointmentToDelete.id },
+      {
+        onSuccess: () => {
+          handleCloseDeleteModal();
+        },
+      }
+    );
+  };
 
   const [viewMode, setViewMode] = useState<'upcoming' | 'past'>('upcoming');
 
@@ -109,19 +185,26 @@ const Appointments: React.FC = () => {
         <div className="flex bg-gray-200 rounded-lg p-1">
           <button
             onClick={() => setViewMode('upcoming')}
-            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${viewMode === 'upcoming' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
+            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 cursor-pointer ${viewMode === 'upcoming' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
               }`}
           >
             Próximas
           </button>
           <button
             onClick={() => setViewMode('past')}
-            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${viewMode === 'past' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
+            className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 cursor-pointer ${viewMode === 'past' ? 'bg-white text-green-700 shadow' : 'text-gray-600 hover:bg-gray-300'
               }`}
           >
             Anteriores
           </button>
         </div>
+        <button
+          onClick={handleOpenAddModal}
+          className="bg-green-600 text-white rounded-full p-3 sm:rounded-lg sm:px-4 sm:py-2 flex items-center sm:space-x-2 transition-colors hover:bg-green-700 fixed bottom-6 right-6 sm:static shadow-lg sm:shadow-none z-30 cursor-pointer"
+        >
+          <Plus className="w-5 h-5" />
+          <span className="hidden sm:inline font-semibold">Programar cita</span>
+        </button>
       </div>
 
       {appointmentsToDisplay.length > 0 ? (
@@ -207,6 +290,24 @@ const Appointments: React.FC = () => {
                           </>
                         )}
                       </div>
+
+                      <div className="border-t border-gray-100 p-2 flex justify-end space-x-1">
+                        <button
+                          onClick={() => handleOpenEditModal(appointment)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors duration-200 cursor-pointer"
+                          aria-label="Editar cita"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenDeleteModal(appointment)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200 cursor-pointer"
+                          aria-label="Eliminar cita"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
                     </div>
                   );
                 })}
@@ -220,8 +321,127 @@ const Appointments: React.FC = () => {
           <p className="text-gray-500 mt-2">{viewMode === 'upcoming' ? 'No hay próximas citas programadas.' : 'No se encontraron citas anteriores.'}</p>
         </div>
       )}
+
+      {isModalOpen && (
+        <AppointmentFormModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleFormSubmit}
+          initialData={editingAppointment}
+          familyMembers={familyMembers || []}
+          isLoading={addAppointmentMutation.isPending || updateAppointmentMutation.isPending}
+        />
+      )}
+
+      {isDeleteModalOpen && (
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleteAppointmentMutation.isPending}
+        />
+      )}
     </div>
   );
 };
+
+interface AppointmentFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+  initialData: Appointment | null;
+  familyMembers: FamilyMember[];
+  isLoading: boolean;
+}
+
+const AppointmentFormModal: React.FC<AppointmentFormModalProps> = ({ isOpen, onClose, onSubmit, initialData, familyMembers, isLoading }) => {
+  const [formData, setFormData] = useState({
+    member_id: initialData?.member_id || '',
+    doctor_name: initialData?.doctor_name || '',
+    appointment_date: initialData?.appointment_date ? initialData.appointment_date.substring(0, 16) : '', // Formato para datetime-local
+    specialty: initialData?.specialty || '',
+    location: initialData?.location || '',
+    notes: initialData?.notes || '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Convertir member_id a número antes de enviar
+    onSubmit({ ...formData, member_id: Number(formData.member_id) });
+  };
+
+  if (!isOpen) return null;
+
+  // El mismo estilo que el campo de miembro pero con un color diferente
+  const inputStyle = "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm";
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-lg">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">{initialData ? 'Editar Cita' : 'Programar Nueva Cita'}</h2>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Paciente</label>
+            <select
+              name="member_id"
+              id="member_id"
+              value={formData.member_id}
+              onChange={handleChange}
+              required
+              disabled={!!initialData}
+              className={`${inputStyle} ${initialData ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            >
+              <option value="" disabled>Selecciona un miembro de la familia...</option>
+              {familyMembers.map(member => (
+                <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="doctor_name" className="block text-sm font-medium text-gray-700">Nombre del Doctor</label>
+            <input type="text" name="doctor_name" id="doctor_name" value={formData.doctor_name} onChange={handleChange} required className={inputStyle} />
+          </div>
+
+          <div>
+            <label htmlFor="appointment_date" className="block text-sm font-medium text-gray-700">Fecha y Hora</label>
+            <input type="datetime-local" name="appointment_date" id="appointment_date" value={formData.appointment_date} onChange={handleChange} required className={inputStyle} />
+          </div>
+
+          <div>
+            <label htmlFor="specialty" className="block text-sm font-medium text-gray-700">Especialidad</label>
+            <input type="text" name="specialty" id="specialty" value={formData.specialty} onChange={handleChange} className={inputStyle} />
+          </div>
+
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700">Ubicación</label>
+            <input type="text" name="location" id="location" value={formData.location} onChange={handleChange} className={inputStyle} />
+          </div>
+
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notas</label>
+            <textarea name="notes" id="notes" value={formData.notes} onChange={handleChange} rows={3} className={inputStyle}></textarea>
+          </div>
+
+          <div className="pt-6 flex justify-end space-x-4">
+            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={isLoading} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center transition-colors cursor-pointer">
+              {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>}
+              {initialData ? 'Guardar Cambios' : 'Programar Cita'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 
 export default Appointments;

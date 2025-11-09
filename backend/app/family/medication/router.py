@@ -91,15 +91,6 @@ async def update_medication(
     if not medication_to_update or medication_to_update.family_id != current_family.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found")
 
-    # They want to change the member_id, i don't know about that
-    if medication_data.member_id:
-        member_check = await db.get(FamilyMember, medication_data.member_id)
-        if not member_check or member_check.family_id != current_family.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Family member with id {medication_data.member_id} not found in this family."
-            )
-
     # Update the model with provided fields only
     update_data = medication_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():

@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import React, { useState } from 'react';
-import { Calendar, Stethoscope, Edit, Trash2, Plus } from 'lucide-react';
+import { Calendar, Stethoscope, Pencil, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
 import type { Vaccination, FamilyMember } from '../../types/family';
@@ -11,6 +11,7 @@ import {
   useUpdateVaccination,
   useDeleteVaccination,
 } from '../../hooks/vaccinations';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 interface VaccinationCardProps {
   vaccination: Vaccination;
@@ -86,19 +87,28 @@ const VaccinationCard: React.FC<VaccinationCardProps> = ({ vaccination, member, 
             </p>
           </div>
         </div>
+
+        {vaccination.notes && (
+          <>
+            <hr className="border-gray-100" />
+            <div className="border-l-4 border-orange-200 bg-orange-50 p-3 rounded-r-md">
+              <p className="text-sm text-orange-900 italic leading-relaxed">{vaccination.notes}</p>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex items-center justify-end space-x-1 p-2 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
         <button
           onClick={onEdit}
-          className="p-2 text-gray-400 hover:text-cyan-600 rounded-full hover:bg-gray-100"
+          className="p-2 text-gray-400 hover:text-orange-600 rounded-full hover:bg-gray-100 cursor-pointer"
         >
-          <Edit className="w-4 h-4" />
+          <Pencil className="w-4 h-4" />
         </button>
         <button
           onClick={onDelete}
           disabled={isDeleting}
-          className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 disabled:opacity-50"
+          className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 disabled:opacity-50 cursor-pointer"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -110,10 +120,13 @@ const VaccinationCard: React.FC<VaccinationCardProps> = ({ vaccination, member, 
 const VaccinationsPage: React.FC = () => {
   const { activeFamily } = useAuth();
   const { data: vaccinations, isLoading: isLoadingVaccinations } = useVaccinations();
-  const {members: familyMembers, memberById: memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
+  const { members: familyMembers, memberById: memberMap, isLoading: isLoadingMembers } = useFamilyMembers();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVaccination, setEditingVaccination] = useState<Vaccination | null>(null);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [vaccinationToDelete, setVaccinationToDelete] = useState<Vaccination | null>(null);
 
   const addVaccinationMutation = useAddVaccination();
   const updateVaccinationMutation = useUpdateVaccination();
@@ -127,6 +140,16 @@ const VaccinationsPage: React.FC = () => {
   const handleOpenEditModal = (vaccination: Vaccination) => {
     setEditingVaccination(vaccination);
     setIsModalOpen(true);
+  };
+
+  const handleOpenDeleteModal = (vaccination: Vaccination) => {
+    setVaccinationToDelete(vaccination);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setVaccinationToDelete(null);
+    setIsDeleteModalOpen(false);
   };
 
   const handleFormSubmit = (formData: any) => {
@@ -152,6 +175,19 @@ const VaccinationsPage: React.FC = () => {
     }
   };
 
+  const handleConfirmDelete = () => {
+    if (!activeFamily || !vaccinationToDelete) return;
+
+    deleteVaccinationMutation.mutate(
+      { familyId: activeFamily.id, vaccinationId: vaccinationToDelete.id },
+      {
+        onSuccess: () => {
+          handleCloseDeleteModal();
+        }
+      }
+    );
+  };
+
   const isLoading = isLoadingVaccinations || isLoadingMembers;
 
   return (
@@ -160,10 +196,10 @@ const VaccinationsPage: React.FC = () => {
         <h2 className="text-3xl font-bold text-gray-800">Vacunas</h2>
         <button
           onClick={handleOpenAddModal}
-          className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center space-x-2 transition-colors cursor-pointer"
+          className="bg-orange-500 text-white rounded-full p-3 sm:rounded-lg sm:px-4 sm:py-2 flex items-center sm:space-x-2 transition-colors hover:bg-orange-600 fixed bottom-6 right-6 sm:static shadow-lg sm:shadow-none z-30 cursor-pointer"
         >
           <Plus className="w-5 h-5" />
-          <span>Agregar vacuna</span>
+          <span className="hidden sm:inline font-semibold">Agregar vacuna</span>
         </button>
       </div>
 
@@ -180,9 +216,7 @@ const VaccinationsPage: React.FC = () => {
               member={memberMap.get(vaccination.member_id)}
               activeFamilyId={activeFamily?.id}
               onEdit={() => handleOpenEditModal(vaccination)}
-
-              onDelete={() => handleDeleteVaccination(vaccination.id)}
-
+              onDelete={() => handleOpenDeleteModal(vaccination)}
               isDeleting={
                 deleteVaccinationMutation.isPending &&
                 deleteVaccinationMutation.variables?.vaccinationId === vaccination.id
@@ -200,6 +234,15 @@ const VaccinationsPage: React.FC = () => {
           initialData={editingVaccination}
           familyMembers={familyMembers || []}
           isLoading={addVaccinationMutation.isPending || updateVaccinationMutation.isPending}
+        />
+      )}
+
+      {isDeleteModalOpen && (
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleteVaccinationMutation.isPending}
         />
       )}
     </div>
@@ -243,24 +286,52 @@ const VaccinationFormModal: React.FC<VaccinationFormModalProps> = ({ isOpen, onC
         <h2 className="text-2xl font-bold mb-6">{initialData ? 'Editar registro de vacuna' : 'Agregar nuevo registro de vacuna'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Paciente</label>
-          <select name="member_id" id="member_id" value={formData.member_id} onChange={handleChange} required className={inputStyle}>
-            <option value="" disabled>Selecciona un miembro de la familia...</option>
-            {familyMembers.map(member => <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>)}
-          </select>
+          <div>
+            <label htmlFor="member_id" className="block text-sm font-medium text-gray-700">Paciente</label>
+            <select
+              name="member_id"
+              id="member_id"
+              value={formData.member_id}
+              onChange={handleChange}
+              required
+              disabled={!!initialData}
+              className={`${inputStyle} ${initialData ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            >
+              <option value="" disabled>Selecciona un miembro de la familia...</option>
+              {familyMembers.map(member => <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>)}
+            </select>
+          </div>
 
-          <label htmlFor="vaccine_name" className="block text-sm font-medium text-gray-700">Nombre de la vacuna</label>
-          <input type="text" name="vaccine_name" id="vaccine_name" value={formData.vaccine_name} onChange={handleChange} required className={inputStyle} />
+          <div>
+            <label htmlFor="vaccine_name" className="block text-sm font-medium text-gray-700">Nombre de la vacuna</label>
+            <input type="text" name="vaccine_name" id="vaccine_name" value={formData.vaccine_name} onChange={handleChange} required className={inputStyle} />
+          </div>
 
-          <label htmlFor="date_administered" className="block text-sm font-medium text-gray-700">Fecha de administración</label>
-          <input type="date" name="date_administered" id="date_administered" value={formData.date_administered} onChange={handleChange} required className={inputStyle} />
+          <div>
+            <label htmlFor="date_administered" className="block text-sm font-medium text-gray-700">Fecha de administración</label>
+            <input type="date" name="date_administered" id="date_administered" value={formData.date_administered} onChange={handleChange} required className={inputStyle} />
+          </div>
 
-          <label htmlFor="administered_by" className="block text-sm font-medium text-gray-700">Administrado por (opcional)</label>
-          <input type="text" name="administered_by" id="administered_by" value={formData.administered_by} onChange={handleChange} className={inputStyle} />
+          <div>
+            <label htmlFor="administered_by" className="block text-sm font-medium text-gray-700">Administrado por (opcional)</label>
+            <input type="text" name="administered_by" id="administered_by" value={formData.administered_by} onChange={handleChange} className={inputStyle} />
+          </div>
+
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notas (opcional)</label>
+            <textarea
+              name="notes"
+              id="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+              className={inputStyle}
+            ></textarea>
+          </div>
 
           <div className="pt-6 flex justify-end space-x-4">
-            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Cancelar</button>
-            <button type="submit" disabled={isLoading} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center">
+            <button type="button" onClick={onClose} disabled={isLoading} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 cursor-pointer">Cancelar</button>
+            <button type="submit" disabled={isLoading} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center cursor-pointer">
               {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>}
               {initialData ? 'Guardar cambios' : 'Agregar vacuna'}
             </button>

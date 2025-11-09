@@ -77,14 +77,6 @@ async def update_vaccination(
     if not vaccination_to_update or vaccination_to_update.family_id != current_family.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vaccination record not found")
 
-    if vaccination_data.member_id is not None:
-        member_check = await db.get(FamilyMember, vaccination_data.member_id)
-        if not member_check or member_check.family_id != current_family.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Family member with id {vaccination_data.member_id} not found in this family."
-            )
-
     update_data = vaccination_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(vaccination_to_update, key, value)
