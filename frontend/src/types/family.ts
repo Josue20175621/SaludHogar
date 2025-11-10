@@ -11,15 +11,16 @@ export interface FamilyMember {
   id: number;
   first_name: string;
   last_name: string;
-  birth_date: string;
-  profile_image_relpath: string;
-  gender: string;
-  relation: string;
-  blood_type: string;
-  phone_number: string;
-  tobacco_use: string;
-  alcohol_use: string;
-  occupation: string;
+  relation: string | null;
+
+  birth_date: string | null;
+  profile_image_relpath: string | null;
+  gender: string | null;
+  blood_type: string | null;
+  phone_number: string | null;
+  tobacco_use: string | null;
+  alcohol_use: string | null;
+  occupation: string | null;
 }
 
 export interface Family {

@@ -3,11 +3,16 @@ import { calculateAge } from '../../utils/formatters';
 import { useFamilyMembers, useAddMember, useUpdateMember, useDeleteMember } from '../../hooks/family';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Trash2, Pencil, Plus } from 'lucide-react';
 import type { FamilyMember } from '../../types/family';
 import { MemberFormModal } from '../../components/MemberFormModal';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
-export const getRelationBadgeColor = (relation: string): string => {
+export const getRelationBadgeColor = (relation: string | null): string => {
+  if (!relation) {
+    return 'bg-gray-100 text-gray-700';
+  }
+
   const colorMap: Record<string, string> = {
     Padre: 'bg-blue-100 text-blue-800',
     Madre: 'bg-pink-100 text-pink-800',
@@ -33,11 +38,13 @@ const FamilyMembers: React.FC = () => {
   const { activeFamily } = useAuth();
   const { members, isLoading, isError } = useFamilyMembers();
 
-  // Modal state
+  const [isManagingProfiles, setIsManagingProfiles] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
 
-  // CUD
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<FamilyMember | null>(null);
+
   const addMemberMutation = useAddMember();
   const updateMemberMutation = useUpdateMember();
   const deleteMemberMutation = useDeleteMember();
@@ -52,27 +59,53 @@ const FamilyMembers: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleOpenDeleteModal = (member: FamilyMember) => {
+    setMemberToDelete(member);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setMemberToDelete(null);
+    setIsDeleteModalOpen(false);
+  };
+
   const handleFormSubmit = (formData: MemberFormData) => {
     if (!activeFamily) return;
 
+    const dataToSend = { ...formData };
+
+    if (dataToSend.birth_date === '') {
+      dataToSend.birth_date = null;
+    }
+
     if (editingMember) {
       updateMemberMutation.mutate(
-        { familyId: activeFamily.id, memberId: editingMember.id, updatedMember: formData },
+        { familyId: activeFamily.id, memberId: editingMember.id, updatedMember: dataToSend },
         { onSuccess: () => setIsModalOpen(false) }
       );
     } else {
       addMemberMutation.mutate(
-        { familyId: activeFamily.id, newMember: formData },
+        { familyId: activeFamily.id, newMember: dataToSend },
         { onSuccess: () => setIsModalOpen(false) }
       );
     }
   };
 
-  const handleDeleteMember = (memberId: number) => {
-    if (!activeFamily) return;
-    if (window.confirm('¿Seguro que deseas eliminar este miembro?')) {
-      deleteMemberMutation.mutate({ familyId: activeFamily.id, memberId });
-    }
+  const handleConfirmDelete = () => {
+    if (!activeFamily || !memberToDelete) return;
+
+    deleteMemberMutation.mutate(
+      { familyId: activeFamily.id, memberId: memberToDelete.id },
+      {
+        onSuccess: () => {
+          handleCloseDeleteModal(); // Cierra el modal al tener éxito
+        },
+      }
+    );
+  };
+
+  const handleToggleManageProfiles = () => {
+    setIsManagingProfiles(prev => !prev);
   };
 
   if (isLoading) {
@@ -89,37 +122,52 @@ const FamilyMembers: React.FC = () => {
 
   return (
     <div className="min-h-[70vh] bg-neutral-900 text-neutral-100 rounded-xl p-6">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold">Selecciona un perfil</h2>
+      <div className="text-center mb-12">
+        <h2 className="text-2xl md:text-3xl font-bold">
+          {isManagingProfiles ? 'Administrar Perfiles' : 'Selecciona un perfil'}
+        </h2>
       </div>
 
-      {/* Grid of profile tiles */}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 place-items-center">
         {members?.map(member => (
           <MemberProfileTile
             key={member.id}
             member={member}
             onEdit={() => handleOpenEditModal(member)}
-            onDelete={() => handleDeleteMember(member.id)}
+            onDelete={() => handleOpenDeleteModal(member)}
+            isManaging={isManagingProfiles}
           />
         ))}
 
-        <button
-          onClick={handleOpenAddModal}
-          className="flex flex-col items-center gap-3 group cursor-pointer"
-        >
-          <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-neutral-800 hover:bg-neutral-700 border-2 border-dashed border-neutral-600 hover:border-neutral-500 transition-all flex items-center justify-center group-hover:scale-105">
-            <Plus className="w-12 h-12 text-neutral-500 group-hover:text-neutral-300 transition-colors" />
-          </div>
-          <p className="text-neutral-400 text-center group-hover:text-white transition-colors font-medium">
-            Agregar Perfil
-          </p>
-        </button>
+        {/* El botón de agregar perfil ahora es parte de la cuadrícula y se oculta en modo de gestión */}
+        {!isManagingProfiles && (
+          <button
+            onClick={handleOpenAddModal}
+            className="flex flex-col items-center gap-3 group cursor-pointer"
+          >
+            <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-neutral-800 hover:bg-neutral-700 border-2 border-dashed border-neutral-600 hover:border-neutral-500 transition-all flex items-center justify-center group-hover:scale-105">
+              <Plus className="w-12 h-12 text-neutral-500 group-hover:text-neutral-300 transition-colors" />
+            </div>
+            <p className="text-neutral-400 text-center group-hover:text-white transition-colors font-medium">
+              Agregar Perfil
+            </p>
+          </button>
+        )}
       </div>
 
-      {members?.length === 0 && (
+      {members?.length === 0 && !isLoading && (
         <p className="text-center text-neutral-400 mt-10">Aún no se han agregado miembros.</p>
       )}
+
+      <div className="mt-16 flex justify-center">
+        <button
+          onClick={handleToggleManageProfiles}
+          className="px-8 py-3 bg-neutral-800 border border-neutral-600 hover:border-neutral-400 text-neutral-400 hover:text-neutral-200 rounded-md transition-colors"
+        >
+          {isManagingProfiles ? 'Listo' : 'Administrar Perfiles'}
+        </button>
+      </div>
 
       {isModalOpen && (
         <MemberFormModal
@@ -130,6 +178,15 @@ const FamilyMembers: React.FC = () => {
           isLoading={addMemberMutation.isPending || updateMemberMutation.isPending}
         />
       )}
+
+      {isDeleteModalOpen && (
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleteMemberMutation.isPending}
+        />
+      )}
     </div>
   );
 };
@@ -138,9 +195,10 @@ interface MemberProfileTileProps {
   member: FamilyMember;
   onEdit: () => void;
   onDelete: () => void;
+  isManaging: boolean;
 }
 
-const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member }) => {
+const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member, onEdit, onDelete, isManaging }) => {
   const { activeFamily } = useAuth();
   const API_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -152,11 +210,8 @@ const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member }) => {
 
   const badgeColor = getRelationBadgeColor(member.relation);
 
-  return (
-    <Link
-      to={`/app/members/${member.id}`}
-      className="group w-36 sm:w-40 md:w-44 lg:w-48 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 rounded-md"
-    >
+  const tileContent = (
+    <div className="group w-36 sm:w-40 md:w-44 lg:w-48 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 rounded-md">
       {/* Avatar container */}
       <div className="relative aspect-square rounded-md overflow-hidden ring-2 ring-transparent group-hover:ring-white/90 group-focus:ring-white/90 transition-all duration-300">
         <img
@@ -186,29 +241,62 @@ const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member }) => {
           }}
         />
 
-        {/* Relation badge */}
-        <div
-          className={
-            `absolute top-2 right-2 px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-md ring-1 ring-black/10 max-w-[75%] truncate ` +
-            badgeColor
-          }
-          title={member.relation}
-        >
-          {member.relation}
-        </div>
+        {isManaging && (
+          <div className="absolute inset-0 bg-black/60 flex justify-center items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            {/* Botón de Editar */}
+            <button
+              onClick={onEdit}
+              className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
+              aria-label={`Editar perfil de ${member.first_name}`}
+            >
+              <Pencil className="w-6 h-6" />
+            </button>
+            {/* Botón de Eliminar */}
+            <button
+              onClick={onDelete}
+              className="p-3 bg-white/10 rounded-full text-white hover:bg-red-500/80 transition-colors"
+              aria-label={`Eliminar perfil de ${member.first_name}`}
+            >
+              <Trash2 className="w-6 h-6" />
+            </button>
+          </div>
+        )}
 
-        {/* Subtle hover overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
+        {/* El badge de relación solo se muestra si NO estamos en modo de gestión */}
+        {!isManaging && member.relation && (
+          <div
+            className={
+              `absolute top-2 right-2 px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-md ring-1 ring-black/10 max-w-[75%] truncate ` +
+              badgeColor
+            }
+            title={member.relation}
+          >
+            {member.relation}
+          </div>
+        )}
       </div>
 
+      {/* Información del Perfil (Nombre, etc.) */}
       <div className="mt-3 text-center">
-        <p className="text-sm md:text-base font-medium text-neutral-500 group-hover:text-white transition-colors duration-300 truncate">
+        <p className="text-sm md:text-base font-medium text-neutral-50 group-hover:text-white transition-colors duration-300 truncate">
           {member.first_name} {member.last_name}
         </p>
-        <p className="text-xs text-neutral-400">
-          {age !== null ? `${age} años` : 'Edad desconocida'} • {member.gender || '—'}
-        </p>
+        {!isManaging && (
+          <p className="text-xs text-neutral-400">
+            {age !== null ? `${age} años` : 'Edad desconocida'} • {member.gender || '—'}
+          </p>
+        )}
       </div>
+    </div>
+  );
+
+  // Si no estamos en modo de gestión, el perfil es un link.
+  // Si lo estamos, es solo un elemento visual con botones internos.
+  return isManaging ? (
+    tileContent
+  ) : (
+    <Link to={`/app/members/${member.id}`} className="no-underline">
+      {tileContent}
     </Link>
   );
 };

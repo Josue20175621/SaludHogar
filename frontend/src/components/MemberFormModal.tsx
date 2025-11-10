@@ -12,6 +12,11 @@ interface MemberFormModalProps {
   isLoading: boolean;
 }
 
+const relationOptions = [
+  'Padre', 'Madre', 'Hijo', 'Hija', 'Abuelo', 'Abuela',
+  'Hermano', 'Hermana', 'Tío', 'Tía', 'Primo', 'Prima', 'Otro'
+];
+
 export const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClose, onSubmit, initialData, isLoading }) => {
   const [formData, setFormData] = useState<MemberFormData>({
     first_name: initialData?.first_name || '',
@@ -102,15 +107,22 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClos
 
               <div>
                 <label htmlFor="relation" className="block text-sm font-medium text-gray-700">Parentesco</label>
-                <input
-                  type="text"
+                <select
                   name="relation"
                   id="relation"
                   value={formData.relation || ''}
                   onChange={handleChange}
+                  required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
-                  placeholder="ej. Esposo/a, Hijo/a, Padre/Madre"
-                />
+                >
+                  <option value="" disabled>Selecciona un parentesco...</option>
+
+                  {relationOptions.map(option => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -162,9 +174,9 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClos
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
                 >
                   <option value="">Seleccionar uso de tabaco</option>
-                  <option value="never">Nunca</option>
-                  <option value="former">Ex fumador</option>
-                  <option value="current">Fumador actual</option>
+                  <option value="nunca">Nunca</option>
+                  <option value="ex_fumador">Ex fumador</option>
+                  <option value="fumador_actual">Fumador actual</option>
                 </select>
               </div>
 
@@ -178,10 +190,10 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClos
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
                 >
                   <option value="">Seleccionar consumo de alcohol</option>
-                  <option value="never">Nunca</option>
-                  <option value="occasional">Ocasional</option>
-                  <option value="moderate">Moderado</option>
-                  <option value="heavy">Frecuente</option>
+                  <option value="nunca">Nunca</option>
+                  <option value="ocasional">Ocasional</option>
+                  <option value="moderado">Moderado</option>
+                  <option value="frecuente">Frecuente</option>
                 </select>
               </div>
 

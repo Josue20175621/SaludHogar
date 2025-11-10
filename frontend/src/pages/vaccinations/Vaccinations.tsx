@@ -168,13 +168,6 @@ const VaccinationsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteVaccination = (vaccinationId: number) => {
-    if (!activeFamily) return;
-    if (window.confirm('Estas seguro de que quieres borrar este registro de vacuna?')) {
-      deleteVaccinationMutation.mutate({ familyId: activeFamily.id, vaccinationId });
-    }
-  };
-
   const handleConfirmDelete = () => {
     if (!activeFamily || !vaccinationToDelete) return;
 

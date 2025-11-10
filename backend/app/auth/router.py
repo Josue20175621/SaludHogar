@@ -48,7 +48,6 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
             family_id=new_family.id,
             first_name=new_user.first_name,
             last_name=new_user.last_name,
-            relation='Owner'
         )
         db.add(initial_member)
 

@@ -72,6 +72,7 @@ class Family(Base):
         back_populates="family",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        order_by="FamilyMember.id"
     )
 
     appointments: Mapped[List["Appointment"]] = relationship(
@@ -134,11 +135,11 @@ class FamilyMember(Base):
 
     first_name: Mapped[str] = mapped_column(String(100), unique=False, nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), unique=False, nullable=False)
+    relation: Mapped[Optional[str]] = mapped_column(String(50), nullable=False)
     birth_date: Mapped[Optional[date]] = mapped_column(Date)
 
     profile_image_relpath: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     gender: Mapped[Optional[str]] = mapped_column(String(20))
-    relation: Mapped[Optional[str]] = mapped_column(String(50))
     blood_type: Mapped[Optional[str]] = mapped_column(String(5))
     phone_number: Mapped[Optional[str]] = mapped_column(String(20))
     tobacco_use: Mapped[Optional[str]] = mapped_column(String(100))
