@@ -242,8 +242,10 @@ const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member, onEdit, o
         />
 
         {isManaging && (
-          <div className="absolute inset-0 bg-black/60 flex justify-center items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            {/* Botón de Editar */}
+          <div className={
+            `absolute inset-0 bg-black/60 flex justify-center items-center gap-4 transition-opacity duration-300 
+            opacity-100 md:opacity-0 md:group-hover:opacity-100`
+          }>
             <button
               onClick={onEdit}
               className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
@@ -251,7 +253,6 @@ const MemberProfileTile: React.FC<MemberProfileTileProps> = ({ member, onEdit, o
             >
               <Pencil className="w-6 h-6" />
             </button>
-            {/* Botón de Eliminar */}
             <button
               onClick={onDelete}
               className="p-3 bg-white/10 rounded-full text-white hover:bg-red-500/80 transition-colors"
