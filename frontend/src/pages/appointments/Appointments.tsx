@@ -198,6 +198,13 @@ const Appointments: React.FC = () => {
             Anteriores
           </button>
         </div>
+        <button
+          onClick={handleOpenAddModal}
+          className="bg-green-600 text-white rounded-full p-3 sm:rounded-lg sm:px-4 sm:py-2 flex items-center sm:space-x-2 transition-colors hover:bg-green-700 fixed bottom-6 right-6 sm:static shadow-lg sm:shadow-none z-30 sm:z-auto"
+        >
+          <Plus className="w-5 h-5" />
+          <span className="hidden sm:inline font-semibold">Programar cita</span>
+        </button>
       </div>
 
       {appointmentsToDisplay.length > 0 ? (
@@ -314,20 +321,6 @@ const Appointments: React.FC = () => {
           <p className="text-gray-500 mt-2">{viewMode === 'upcoming' ? 'No hay próximas citas programadas.' : 'No se encontraron citas anteriores.'}</p>
         </div>
       )}
-
-      <div className="group fixed bottom-6 right-6 z-30">
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-green-600 text-white rounded-full p-3 flex items-center justify-center transition-all duration-300 hover:bg-green-700 shadow-lg hover:shadow-xl hover:scale-110"
-          aria-label="Programar cita"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-
-        <span className="absolute bottom-full right-0 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          Programar cita
-        </span>
-      </div>
 
       {isModalOpen && (
         <AppointmentFormModal
