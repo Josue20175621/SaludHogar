@@ -118,11 +118,11 @@ const Dashboard: React.FC = () => {
                             <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Medicamentos activos</p>
                             <p className="text-2xl sm:text-3xl font-bold text-purple-600">{stats?.active_medication_count || 0}</p>
                             {(stats?.active_medication_count || 0) > 3 && (
-                            <button className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer">
-                                Ver todos
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
-                        )}
+                                <button className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer">
+                                    Ver todos
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -199,11 +199,17 @@ const Dashboard: React.FC = () => {
                         </div>
                     ) : (
                         <div className="text-center py-12">
-                            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-3">
-                                <Calendar className="w-8 h-8 text-gray-400" />
+                            <div className="inline-flex p-2 bg-green-100 rounded-lg mb-3">
+                                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                             </div>
                             <p className="text-sm font-medium text-gray-700 mb-1">No hay próximas citas</p>
-                            <p className="text-xs text-gray-500">Las citas programadas aparecerán aquí</p>
+                            <p className="text-xs text-gray-500 mb-4">Las citas programadas aparecerán aquí</p>
+                            <button
+                                onClick={() => navigate('/app/appointments')}
+                                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            >
+                                Programar Cita
+                            </button>
                         </div>
                     )}
                 </div>
@@ -262,11 +268,17 @@ const Dashboard: React.FC = () => {
                         </div>
                     ) : (
                         <div className="text-center py-12">
-                            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-3">
-                                <Pill className="w-8 h-8 text-gray-400" />
+                            <div className="inline-flex p-2 bg-purple-100 rounded-lg mb-3">
+                                <Pill className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                             </div>
                             <p className="text-sm font-medium text-gray-700 mb-1">No hay medicamentos activos</p>
-                            <p className="text-xs text-gray-500">Los medicamentos registrados aparecerán aquí</p>
+                            <p className="text-xs text-gray-500 mb-4">Los medicamentos registrados aparecerán aquí</p>
+                            <button
+                                onClick={() => navigate('/app/medications')}
+                                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                            >
+                                Agregar Medicamento
+                            </button>
                         </div>
                     )}
                 </div>

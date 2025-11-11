@@ -61,7 +61,7 @@ function Register() {
 
     setIsLoading(true);
 
-    const defaultFamilyName = `La Familia ${last_name}`;
+    const defaultFamilyName = `Familia ${last_name}`;
 
     try {
       await authApi.post('/register', {

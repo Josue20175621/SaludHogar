@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import React, { useState } from 'react';
-import { Plus, Calendar, User, Beaker, Repeat, Clock, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Calendar, User, Beaker, Repeat, Clock, Pencil, Trash2, Pill } from 'lucide-react';
 import type { Medication, FamilyMember } from '../../types/family';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
@@ -98,18 +98,28 @@ const Medications: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {medications?.map(medication => (
-          <MedicationCard
-            key={medication.id}
-            medication={medication}
-            member={memberMap.get(medication.member_id)}
-            activeFamilyId={activeFamily?.id}
-            onEdit={handleOpenEditModal}
-            onDelete={handleOpenDeleteModal}
-          />
-        ))}
-      </div>
+      {medications && medications.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {medications.map(medication => (
+            <MedicationCard
+              key={medication.id}
+              medication={medication}
+              member={memberMap.get(medication.member_id)}
+              activeFamilyId={activeFamily?.id}
+              onEdit={handleOpenEditModal}
+              onDelete={handleOpenDeleteModal}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="inline-flex p-2 bg-purple-100 rounded-lg mb-3">
+              <Pill className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+          </div>
+          <p className="text-sm font-medium text-gray-700 mb-1">No hay medicamentos activos</p>
+          <p className="text-xs text-gray-500 mb-4">Los medicamentos registrados aparecerán aquí</p>
+        </div>
+      )}
 
       {isModalOpen && (
         <MedicationFormModal

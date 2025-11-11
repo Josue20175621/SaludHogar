@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import React, { useState } from 'react';
-import { Calendar, Stethoscope, Pencil, Trash2, Plus } from 'lucide-react';
+import { Calendar, Stethoscope, Pencil, Trash2, Plus, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
 import type { Vaccination, FamilyMember } from '../../types/family';
@@ -201,22 +201,32 @@ const VaccinationsPage: React.FC = () => {
           <div className="w-8 h-8 border-4 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {vaccinations?.map(vaccination => (
-            <VaccinationCard
-              key={vaccination.id}
-              vaccination={vaccination}
-              member={memberMap.get(vaccination.member_id)}
-              activeFamilyId={activeFamily?.id}
-              onEdit={() => handleOpenEditModal(vaccination)}
-              onDelete={() => handleOpenDeleteModal(vaccination)}
-              isDeleting={
-                deleteVaccinationMutation.isPending &&
-                deleteVaccinationMutation.variables?.vaccinationId === vaccination.id
-              }
-            />
-          ))}
-        </div>
+        vaccinations && vaccinations.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {vaccinations.map(vaccination => (
+              <VaccinationCard
+                key={vaccination.id}
+                vaccination={vaccination}
+                member={memberMap.get(vaccination.member_id)}
+                activeFamilyId={activeFamily?.id}
+                onEdit={() => handleOpenEditModal(vaccination)}
+                onDelete={() => handleOpenDeleteModal(vaccination)}
+                isDeleting={
+                  deleteVaccinationMutation.isPending &&
+                  deleteVaccinationMutation.variables?.vaccinationId === vaccination.id
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="inline-flex p-2 bg-orange-100 rounded-lg mb-3">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-700 mb-1">No hay vacunas registradas</p>
+            <p className="text-xs text-gray-500 mb-4">Los registros de vacunas que agregues aparecerán aquí</p>
+          </div>
+        )
       )}
 
       {isModalOpen && (

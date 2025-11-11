@@ -316,9 +316,18 @@ const Appointments: React.FC = () => {
           )
         ))
       ) : (
-        <div className="text-center py-16 bg-white rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold text-gray-700">{viewMode === 'upcoming' ? 'Todo despejado' : 'Sin historial'}</h3>
-          <p className="text-gray-500 mt-2">{viewMode === 'upcoming' ? 'No hay próximas citas programadas.' : 'No se encontraron citas anteriores.'}</p>
+        <div className="text-center py-12">
+          <div className="inline-flex p-2 bg-green-100 rounded-lg mb-3">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+          </div>
+
+          <p className="text-sm font-medium text-gray-700 mb-1">
+            {viewMode === 'upcoming' ? 'Todo despejado' : 'Sin historial'}
+          </p>
+
+          <p className="text-xs text-gray-500 mb-4">
+            {viewMode === 'upcoming' ? 'No tienes próximas citas programadas.' : 'No se encontraron citas anteriores.'}
+          </p>
         </div>
       )}
 
