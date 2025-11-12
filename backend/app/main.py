@@ -1,3 +1,10 @@
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Load .env file
+path = Path(__file__).resolve().parents[2] / '.env'
+load_dotenv(path)
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database import engine
@@ -32,7 +39,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

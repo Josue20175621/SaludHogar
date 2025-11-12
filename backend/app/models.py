@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from app.security import encryption
 
 
 class Base(DeclarativeBase):
@@ -104,6 +105,10 @@ class Family(Base):
     )
     family_history: Mapped[List["FamilyHistoryCondition"]] = relationship(
         back_populates="family", cascade="all, delete-orphan"
+    )
+
+    encryption_key: Mapped[Optional["FamilyEncryptionKey"]] = relationship(
+        back_populates="family", uselist=False, cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
@@ -374,5 +379,17 @@ class Notification(Base):
     related_entity_type: Mapped[Optional[str]] = mapped_column(String(100))
     related_entity_id: Mapped[Optional[int]] = mapped_column(Integer)
 
-    # --- Relationships ---
+    # Relationships
     user: Mapped["User"] = relationship(back_populates="notifications")
+
+class FamilyEncryptionKey(Base):
+    __tablename__ = 'family_encryption_keys'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    
+    family_id: Mapped[int] = mapped_column(ForeignKey('families.id', ondelete="CASCADE"), unique=True, nullable=False)
+    
+    encrypted_dek: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Relationships
+    family: Mapped["Family"] = relationship(back_populates="encryption_key")

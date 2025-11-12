@@ -21,7 +21,7 @@ def decrypt_secret(encrypted: str) -> str:
     return fernet.decrypt(encrypted.encode()).decode()
 
 def generate_and_encrypt_dek() -> tuple[bytes, str]:
-    # Generate a new, random 256-bit key locally. This is very fast.
+    """ Generate a new, random 128-bit key locally. This is very fast. Returns (plaintext_dek, encrypted_dek). We don't need 256-bit keys according to NIST"""
     plaintext_dek = Fernet.generate_key()
     
     encrypt_response = vault_client.secrets.transit.encrypt_data(
@@ -29,13 +29,12 @@ def generate_and_encrypt_dek() -> tuple[bytes, str]:
         plaintext=base64.b64encode(plaintext_dek).decode('utf-8'),
     )
     
-    # Get the result from Vault. This is the "wrapped" or "enveloped" key.
     encrypted_dek = encrypt_response['data']['ciphertext']
     
     return plaintext_dek, encrypted_dek
 
 def decrypt_dek(encrypted_dek: str) -> bytes:
-    # Tell vault to decrypt the DEK.
+    """Tell vault to decrypt the DEK."""
     decrypt_response = vault_client.secrets.transit.decrypt_data(
         name=KEK_NAME,
         ciphertext=encrypted_dek,
@@ -45,7 +44,7 @@ def decrypt_dek(encrypted_dek: str) -> bytes:
     return base64.b64decode(dek_b64)
 
 def encrypt_with_dek(plaintext: str, dek: bytes) -> str:
-    # Encrypts a string value using a provided plaintext DEK.
+    """Encrypts a string value using a provided plaintext DEK."""
     if not isinstance(plaintext, str):
         plaintext = str(plaintext)
     f = Fernet(dek)
@@ -53,7 +52,7 @@ def encrypt_with_dek(plaintext: str, dek: bytes) -> str:
     return base64.b64encode(encrypted_data).decode('utf-8')
 
 def decrypt_with_dek(encrypted_b64: str, dek: bytes) -> str:
-    # Decrypts a string value using a provided plaintext DEK.
+    """Decrypts a string value using a provided plaintext DEK."""
     encrypted_data = base64.b64decode(encrypted_b64)
     f = Fernet(dek)
     decrypted_data = f.decrypt(encrypted_data)
