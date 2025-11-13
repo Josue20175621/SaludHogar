@@ -9,6 +9,7 @@ from app.security import encryption
 
 class Base(DeclarativeBase):
     """Common declarative base for the whole model hierarchy."""
+    __allow_unmapped__ = True
 
 class User(Base):
     __tablename__ = "users"
@@ -22,7 +23,7 @@ class User(Base):
     is_totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     totp_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     _first_name_encrypted: Mapped[str] = mapped_column("first_name", Text, nullable=False)
     _last_name_encrypted: Mapped[str] = mapped_column("last_name", Text, nullable=False)
@@ -83,7 +84,7 @@ class Family(Base):
     )
 
     _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def name(self) -> str:
@@ -182,7 +183,7 @@ class FamilyMember(Base):
     _alcohol_use_encrypted: Mapped[Optional[str]] = mapped_column("alcohol_use", Text)
     _occupation_encrypted: Mapped[Optional[str]] = mapped_column("occupation", Text)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def first_name(self) -> str: # type: ignore
@@ -332,7 +333,7 @@ class FamilyHistoryCondition(Base):
     _relative_encrypted: Mapped[str] = mapped_column("relative", Text, nullable=False)
     _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def condition_name(self) -> str:
@@ -385,7 +386,7 @@ class Hospitalization(Base):
     _facility_name_encrypted: Mapped[Optional[str]] = mapped_column("facility_name", Text)
     _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def reason(self) -> str:
@@ -446,7 +447,7 @@ class Appointment(Base):
     _location_encrypted: Mapped[Optional[str]] = mapped_column("location", Text)
     _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
     
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def doctor_name(self) -> str:
@@ -518,7 +519,7 @@ class Medication(Base):
     _prescribed_by_encrypted: Mapped[Optional[str]] = mapped_column("prescribed_by", Text)
     _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def name(self) -> str:
@@ -595,7 +596,7 @@ class Vaccination(Base):
     _administered_by_encrypted: Mapped[Optional[str]] = mapped_column("administered_by", Text)
     _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def vaccine_name(self) -> str:
@@ -646,7 +647,7 @@ class Allergy(Base):
     _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
     _reaction_encrypted: Mapped[Optional[str]] = mapped_column("reaction", Text)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def category(self) -> str:
@@ -696,7 +697,7 @@ class Condition(Base):
     _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
     _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
     
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def name(self) -> str:
@@ -737,7 +738,7 @@ class Surgery(Base):
     _facility_name_encrypted: Mapped[Optional[str]] = mapped_column("facility_name", Text)
     _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
 
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def name(self) -> str:
@@ -799,7 +800,7 @@ class Notification(Base):
 
     
     _message_encrypted: Mapped[str] = mapped_column("message", Text, nullable=False)
-    _plaintext_dek: ClassVar[Optional[bytes]] = None
+    _plaintext_dek: Optional[bytes] = None
 
     @hybrid_property
     def message(self) -> str:
