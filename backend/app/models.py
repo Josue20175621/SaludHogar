@@ -1,8 +1,9 @@
 from datetime import datetime, date
-from typing import List, Optional
+from typing import List, Optional, ClassVar
 
 from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.security import encryption
 
 
@@ -13,17 +14,42 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    first_name: Mapped[str] = mapped_column(String(100), unique=False, nullable=False)
-    last_name: Mapped[str] = mapped_column(String(100), unique=False, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
-
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
-
     is_totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     totp_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    _first_name_encrypted: Mapped[str] = mapped_column("first_name", Text, nullable=False)
+    _last_name_encrypted: Mapped[str] = mapped_column("last_name", Text, nullable=False)
+
+    @hybrid_property
+    def first_name(self) -> str:
+        if self._plaintext_dek is None:
+            raise RuntimeError("DEK not loaded for decryption on User")
+        return encryption.decrypt_with_dek(self._first_name_encrypted, self._plaintext_dek)
+
+    @first_name.setter
+    def first_name(self, value: str):
+        if self._plaintext_dek is None:
+            raise RuntimeError("DEK not loaded for encryption on User")
+        self._first_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def last_name(self) -> str:
+        if self._plaintext_dek is None:
+            raise RuntimeError("DEK not loaded for decryption on User")
+        return encryption.decrypt_with_dek(self._last_name_encrypted, self._plaintext_dek)
+
+    @last_name.setter
+    def last_name(self, value: str):
+        if self._plaintext_dek is None:
+            raise RuntimeError("DEK not loaded for encryption on User")
+        self._last_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
 
     # Relationships
     memberships: Mapped[List["FamilyMembership"]] = relationship(
@@ -41,16 +67,11 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
 
-    def __repr__(self) -> str:
-        return f"<User id={self.id} first_name={self.first_name!r} last_name={self.last_name!r}>"
-
 
 class Family(Base):
     __tablename__ = "families"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), 
         nullable=False,
@@ -60,6 +81,21 @@ class Family(Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
+
+    _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def name(self) -> str:
+        if self._plaintext_dek is None:
+            raise RuntimeError("DEK not loaded for decryption on Family")
+        return encryption.decrypt_with_dek(self._name_encrypted, self._plaintext_dek)
+
+    @name.setter
+    def name(self, value: str):
+        if self._plaintext_dek is None:
+            raise RuntimeError("DEK not loaded for encryption on Family")
+        self._name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
 
     # Relationships 
     owner: Mapped[User] = relationship(back_populates="owned_family")
@@ -111,9 +147,6 @@ class Family(Base):
         back_populates="family", uselist=False, cascade="all, delete-orphan"
     )
 
-    def __repr__(self) -> str:
-        return f"<Family id={self.id} name={self.name!r}>"
-
 class FamilyMembership(Base):
     __tablename__ = "family_memberships"
 
@@ -126,34 +159,136 @@ class FamilyMembership(Base):
     user: Mapped["User"] = relationship(back_populates="memberships")
     family: Mapped["Family"] = relationship(back_populates="memberships")
 
-    def __repr__(self) -> str:
-        return f"<FamilyMembership user_id={self.user_id} family_id={self.family_id} role='{self.role}'>"
-
 class FamilyMember(Base):
     __tablename__ = "family_members"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-
     family_id: Mapped[int] = mapped_column(
         ForeignKey("families.id", ondelete="CASCADE"), nullable=False
     )
-
-    first_name: Mapped[str] = mapped_column(String(100), unique=False, nullable=False)
-    last_name: Mapped[str] = mapped_column(String(100), unique=False, nullable=False)
-    relation: Mapped[Optional[str]] = mapped_column(String(50), nullable=False)
     birth_date: Mapped[Optional[date]] = mapped_column(Date)
-
     profile_image_relpath: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     gender: Mapped[Optional[str]] = mapped_column(String(20))
-    blood_type: Mapped[Optional[str]] = mapped_column(String(5))
-    phone_number: Mapped[Optional[str]] = mapped_column(String(20))
-    tobacco_use: Mapped[Optional[str]] = mapped_column(String(100))
-    alcohol_use: Mapped[Optional[str]] = mapped_column(String(100))
-    occupation: Mapped[Optional[str]] = mapped_column(String(255))
-
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
+
+    _first_name_encrypted: Mapped[str] = mapped_column("first_name", Text, nullable=False)
+    _last_name_encrypted: Mapped[str] = mapped_column("last_name", Text, nullable=False)
+    _relation_encrypted: Mapped[str] = mapped_column("relation", Text, nullable=False)
+    _blood_type_encrypted: Mapped[Optional[str]] = mapped_column("blood_type", Text)
+    _phone_number_encrypted: Mapped[Optional[str]] = mapped_column("phone_number", Text)
+    _tobacco_use_encrypted: Mapped[Optional[str]] = mapped_column("tobacco_use", Text)
+    _alcohol_use_encrypted: Mapped[Optional[str]] = mapped_column("alcohol_use", Text)
+    _occupation_encrypted: Mapped[Optional[str]] = mapped_column("occupation", Text)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def first_name(self) -> str: # type: ignore
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._first_name_encrypted, self._plaintext_dek)
+
+    @first_name.setter
+    def first_name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        self._first_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+    
+    @hybrid_property
+    def last_name(self) -> str: # type: ignore
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._last_name_encrypted, self._plaintext_dek)
+    
+    @last_name.setter
+    def last_name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        self._last_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def relation(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._relation_encrypted, self._plaintext_dek)
+
+    @relation.setter
+    def relation(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        self._relation_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+    
+
+    @hybrid_property
+    def blood_type(self) -> Optional[str]:
+        if self._blood_type_encrypted is None:
+            return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._blood_type_encrypted, self._plaintext_dek)
+
+    @blood_type.setter
+    def blood_type(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        if value is None:
+            self._blood_type_encrypted = None
+        else:
+            self._blood_type_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def phone_number(self) -> Optional[str]: # type: ignore
+        if self._phone_number_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._phone_number_encrypted, self._plaintext_dek)
+    
+    @phone_number.setter
+    def phone_number(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        if value is None:
+            self._phone_number_encrypted = None
+        else:
+            self._phone_number_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+    
+    @hybrid_property
+    def tobacco_use(self) -> Optional[str]:
+        if self._tobacco_use_encrypted is None:
+            return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._tobacco_use_encrypted, self._plaintext_dek)
+
+    @tobacco_use.setter
+    def tobacco_use(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        if value is None:
+            self._tobacco_use_encrypted = None
+        else:
+            self._tobacco_use_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def alcohol_use(self) -> Optional[str]:
+        if self._alcohol_use_encrypted is None:
+            return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._alcohol_use_encrypted, self._plaintext_dek)
+
+    @alcohol_use.setter
+    def alcohol_use(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        if value is None:
+            self._alcohol_use_encrypted = None
+        else:
+            self._alcohol_use_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def occupation(self) -> Optional[str]:
+        if self._occupation_encrypted is None:
+            return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyMember")
+        return encryption.decrypt_with_dek(self._occupation_encrypted, self._plaintext_dek)
+
+    @occupation.setter
+    def occupation(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyMember")
+        if value is None:
+            self._occupation_encrypted = None
+        else:
+            self._occupation_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
 
     # Relationships
     family: Mapped[Family] = relationship(back_populates="members")
@@ -186,22 +321,54 @@ class FamilyMember(Base):
         back_populates="member", cascade="all, delete-orphan"
     )
 
-    def __repr__(self) -> str:
-        return f"<FamilyMember id={self.id} first_name={self.first_name!r} last_name={self.last_name!r}>"
-
 class FamilyHistoryCondition(Base):
     __tablename__ = "family_history_conditions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
-
-    condition_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    relative: Mapped[str] = mapped_column(String(100), nullable=False)
-    notes: Mapped[Optional[str]] = mapped_column(Text)
-
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-    
-    
+
+    _condition_name_encrypted: Mapped[str] = mapped_column("condition_name", Text, nullable=False)
+    _relative_encrypted: Mapped[str] = mapped_column("relative", Text, nullable=False)
+    _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def condition_name(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyHistoryCondition")
+        return encryption.decrypt_with_dek(self._condition_name_encrypted, self._plaintext_dek)
+
+    @condition_name.setter
+    def condition_name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyHistoryCondition")
+        self._condition_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def relative(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyHistoryCondition")
+        return encryption.decrypt_with_dek(self._relative_encrypted, self._plaintext_dek)
+
+    @relative.setter
+    def relative(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyHistoryCondition")
+        self._relative_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def notes(self) -> Optional[str]:
+        if self._notes_encrypted is None:
+            return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on FamilyHistoryCondition")
+        return encryption.decrypt_with_dek(self._notes_encrypted, self._plaintext_dek)
+
+    @notes.setter
+    def notes(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on FamilyHistoryCondition")
+        if value is None:
+            self._notes_encrypted = None
+        else:
+            self._notes_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
     family: Mapped["Family"] = relationship(back_populates="family_history")
 
 class Hospitalization(Base):
@@ -210,15 +377,53 @@ class Hospitalization(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
     member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
-
-    reason: Mapped[str] = mapped_column(String(255), nullable=False)
     admission_date: Mapped[date] = mapped_column(Date, nullable=False)
     discharge_date: Mapped[Optional[date]] = mapped_column(Date)
-    
-    facility_name: Mapped[Optional[str]] = mapped_column(String(255))
-    notes: Mapped[Optional[str]] = mapped_column(Text)
-    
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    _reason_encrypted: Mapped[str] = mapped_column("reason", Text, nullable=False)
+    _facility_name_encrypted: Mapped[Optional[str]] = mapped_column("facility_name", Text)
+    _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def reason(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Hospitalization")
+        return encryption.decrypt_with_dek(self._reason_encrypted, self._plaintext_dek)
+
+    @reason.setter
+    def reason(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Hospitalization")
+        self._reason_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def facility_name(self) -> Optional[str]:
+        if self._facility_name_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Hospitalization")
+        return encryption.decrypt_with_dek(self._facility_name_encrypted, self._plaintext_dek)
+
+    @facility_name.setter
+    def facility_name(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Hospitalization")
+        if value is None:
+            self._facility_name_encrypted = None
+        else:
+            self._facility_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def notes(self) -> Optional[str]:
+        if self._notes_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Hospitalization")
+        return encryption.decrypt_with_dek(self._notes_encrypted, self._plaintext_dek)
+
+    @notes.setter
+    def notes(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Hospitalization")
+        if value is None:
+            self._notes_encrypted = None
+        else:
+            self._notes_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
     
     # --- Relationships ---
     family: Mapped["Family"] = relationship(back_populates="hospitalizations")
@@ -228,86 +433,205 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-
     family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
     member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
-
     appointment_date: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
-    doctor_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    specialty: Mapped[Optional[str]] = mapped_column(String(255))
-    location: Mapped[Optional[str]] = mapped_column(Text)
-    notes: Mapped[Optional[str]] = mapped_column(Text)
     is_reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default='f')
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
+    _doctor_name_encrypted: Mapped[str] = mapped_column("doctor_name", Text, nullable=False)
+    _specialty_encrypted: Mapped[Optional[str]] = mapped_column("specialty", Text)
+    _location_encrypted: Mapped[Optional[str]] = mapped_column("location", Text)
+    _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
+    
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def doctor_name(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Appointment")
+        return encryption.decrypt_with_dek(self._doctor_name_encrypted, self._plaintext_dek)
+
+    @doctor_name.setter
+    def doctor_name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Appointment")
+        self._doctor_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def specialty(self) -> Optional[str]:
+        if self._specialty_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Appointment")
+        return encryption.decrypt_with_dek(self._specialty_encrypted, self._plaintext_dek)
+
+    @specialty.setter
+    def specialty(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Appointment")
+        self._specialty_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def location(self) -> Optional[str]:
+        if self._location_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Appointment")
+        return encryption.decrypt_with_dek(self._location_encrypted, self._plaintext_dek)
+
+    @location.setter
+    def location(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Appointment")
+        self._location_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def notes(self) -> Optional[str]:
+        if self._notes_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Appointment")
+        return encryption.decrypt_with_dek(self._notes_encrypted, self._plaintext_dek)
+
+    @notes.setter
+    def notes(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Appointment")
+        self._notes_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="appointments")
     member: Mapped["FamilyMember"] = relationship(back_populates="appointments")
 
-    def __repr__(self) -> str:
-        return f"<Appointment id={self.id} doctor='{self.doctor_name}' date='{self.appointment_date}'>"
 
 class Medication(Base):
     __tablename__ = "medications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-
     family_id: Mapped[int] = mapped_column(
         ForeignKey("families.id", ondelete="CASCADE"), nullable=False
     )
     member_id: Mapped[int] = mapped_column(
         ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False
     )
-
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    
-    dosage: Mapped[str] = mapped_column(String(100), nullable=False)
-    frequency: Mapped[str] = mapped_column(String(100), nullable=False)
-
     start_date: Mapped[Optional[date]] = mapped_column(Date)
     end_date: Mapped[Optional[date]] = mapped_column(Date)
-    prescribed_by: Mapped[Optional[str]] = mapped_column(String(255))
-    notes: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
+
+    _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
+    _dosage_encrypted: Mapped[str] = mapped_column("dosage", Text, nullable=False)
+    _frequency_encrypted: Mapped[str] = mapped_column("frequency", Text, nullable=False)
+    _prescribed_by_encrypted: Mapped[Optional[str]] = mapped_column("prescribed_by", Text)
+    _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def name(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Medication")
+        return encryption.decrypt_with_dek(self._name_encrypted, self._plaintext_dek)
+
+    @name.setter
+    def name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Medication")
+        self._name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def dosage(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Medication")
+        return encryption.decrypt_with_dek(self._dosage_encrypted, self._plaintext_dek)
+
+    @dosage.setter
+    def dosage(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Medication")
+        self._dosage_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def frequency(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Medication")
+        return encryption.decrypt_with_dek(self._frequency_encrypted, self._plaintext_dek)
+
+    @frequency.setter
+    def frequency(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Medication")
+        self._frequency_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def prescribed_by(self) -> Optional[str]:
+        if self._prescribed_by_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Medication")
+        return encryption.decrypt_with_dek(self._prescribed_by_encrypted, self._plaintext_dek)
+
+    @prescribed_by.setter
+    def prescribed_by(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Medication")
+        self._prescribed_by_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def notes(self) -> Optional[str]:
+        if self._notes_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Medication")
+        return encryption.decrypt_with_dek(self._notes_encrypted, self._plaintext_dek)
+
+    @notes.setter
+    def notes(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Medication")
+        self._notes_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
 
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="medications")
     member: Mapped["FamilyMember"] = relationship(back_populates="medications")
 
-    def __repr__(self) -> str:
-        return f"<Medication id={self.id} name='{self.name}' member_id={self.member_id}>"
-
 class Vaccination(Base):
     __tablename__ = "vaccinations"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-
     family_id: Mapped[int] = mapped_column(
         ForeignKey("families.id", ondelete="CASCADE"), nullable=False
     )
     member_id: Mapped[int] = mapped_column(
         ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False
     )
-
-    vaccine_name: Mapped[str] = mapped_column(String(255), nullable=False)
     date_administered: Mapped[date] = mapped_column(Date, nullable=False)
-    administered_by: Mapped[Optional[str]] = mapped_column(String(255))
-    notes: Mapped[Optional[str]] = mapped_column(Text)
-
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
+    _vaccine_name_encrypted: Mapped[str] = mapped_column("vaccine_name", Text, nullable=False)
+    _administered_by_encrypted: Mapped[Optional[str]] = mapped_column("administered_by", Text)
+    _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def vaccine_name(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Vaccination")
+        return encryption.decrypt_with_dek(self._vaccine_name_encrypted, self._plaintext_dek)
+
+    @vaccine_name.setter
+    def vaccine_name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Vaccination")
+        self._vaccine_name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def administered_by(self) -> Optional[str]:
+        if self._administered_by_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Vaccination")
+        return encryption.decrypt_with_dek(self._administered_by_encrypted, self._plaintext_dek)
+
+    @administered_by.setter
+    def administered_by(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Vaccination")
+        self._administered_by_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def notes(self) -> Optional[str]:
+        if self._notes_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Vaccination")
+        return encryption.decrypt_with_dek(self._notes_encrypted, self._plaintext_dek)
+
+    @notes.setter
+    def notes(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Vaccination")
+        self._notes_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="vaccinations")
     member: Mapped["FamilyMember"] = relationship(back_populates="vaccinations")
-
-    def __repr__(self) -> str:
-        return f"<Vaccination id={self.id} name='{self.vaccine_name}' member_id={self.member_id}>"
 
 class Allergy(Base):
     __tablename__ = "allergies"
@@ -315,13 +639,45 @@ class Allergy(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
     member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
-    
-    category: Mapped[str] = mapped_column(String(100), nullable=False)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    reaction: Mapped[Optional[str]] = mapped_column(Text)
     is_severe: Mapped[bool] = mapped_column(Boolean, default=False)
-    
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    _category_encrypted: Mapped[str] = mapped_column("category", Text, nullable=False)
+    _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
+    _reaction_encrypted: Mapped[Optional[str]] = mapped_column("reaction", Text)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def category(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Allergy")
+        return encryption.decrypt_with_dek(self._category_encrypted, self._plaintext_dek)
+
+    @category.setter
+    def category(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Allergy")
+        self._category_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def name(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Allergy")
+        return encryption.decrypt_with_dek(self._name_encrypted, self._plaintext_dek)
+
+    @name.setter
+    def name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Allergy")
+        self._name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def reaction(self) -> Optional[str]:
+        if self._reaction_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Allergy")
+        return encryption.decrypt_with_dek(self._reaction_encrypted, self._plaintext_dek)
+
+    @reaction.setter
+    def reaction(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Allergy")
+        self._reaction_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
     
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="allergies")
@@ -333,13 +689,35 @@ class Condition(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
     member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
-    
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
     date_diagnosed: Mapped[Optional[date]] = mapped_column(Date)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    notes: Mapped[Optional[str]] = mapped_column(Text)
-    
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
+    _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
+    
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def name(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Condition")
+        return encryption.decrypt_with_dek(self._name_encrypted, self._plaintext_dek)
+
+    @name.setter
+    def name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Condition")
+        self._name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def notes(self) -> Optional[str]:
+        if self._notes_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Condition")
+        return encryption.decrypt_with_dek(self._notes_encrypted, self._plaintext_dek)
+
+    @notes.setter
+    def notes(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Condition")
+        self._notes_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
 
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="conditions")
@@ -351,14 +729,58 @@ class Surgery(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), nullable=False)
     member_id: Mapped[int] = mapped_column(ForeignKey("family_members.id", ondelete="CASCADE"), nullable=False)
-    
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
     date_of_procedure: Mapped[date] = mapped_column(Date, nullable=False)
-    surgeon_name: Mapped[Optional[str]] = mapped_column(String(255))
-    facility_name: Mapped[Optional[str]] = mapped_column(String(255))
-    notes: Mapped[Optional[str]] = mapped_column(Text)
-    
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    _name_encrypted: Mapped[str] = mapped_column("name", Text, nullable=False)
+    _surgeon_name_encrypted: Mapped[Optional[str]] = mapped_column("surgeon_name", Text)
+    _facility_name_encrypted: Mapped[Optional[str]] = mapped_column("facility_name", Text)
+    _notes_encrypted: Mapped[Optional[str]] = mapped_column("notes", Text)
+
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def name(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Surgery")
+        return encryption.decrypt_with_dek(self._name_encrypted, self._plaintext_dek)
+
+    @name.setter
+    def name(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Surgery")
+        self._name_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def surgeon_name(self) -> Optional[str]:
+        if self._surgeon_name_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Surgery")
+        return encryption.decrypt_with_dek(self._surgeon_name_encrypted, self._plaintext_dek)
+
+    @surgeon_name.setter
+    def surgeon_name(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Surgery")
+        self._surgeon_name_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def facility_name(self) -> Optional[str]:
+        if self._facility_name_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Surgery")
+        return encryption.decrypt_with_dek(self._facility_name_encrypted, self._plaintext_dek)
+
+    @facility_name.setter
+    def facility_name(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Surgery")
+        self._facility_name_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
+
+    @hybrid_property
+    def notes(self) -> Optional[str]:
+        if self._notes_encrypted is None: return None
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Surgery")
+        return encryption.decrypt_with_dek(self._notes_encrypted, self._plaintext_dek)
+
+    @notes.setter
+    def notes(self, value: Optional[str]):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Surgery")
+        self._notes_encrypted = None if value is None else encryption.encrypt_with_dek(value, self._plaintext_dek)
 
     # Relationships
     family: Mapped["Family"] = relationship(back_populates="surgeries")
@@ -369,15 +791,25 @@ class Notification(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-
     type: Mapped[str] = mapped_column(String(100), nullable=False)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
-    
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-
     related_entity_type: Mapped[Optional[str]] = mapped_column(String(100))
     related_entity_id: Mapped[Optional[int]] = mapped_column(Integer)
+
+    
+    _message_encrypted: Mapped[str] = mapped_column("message", Text, nullable=False)
+    _plaintext_dek: ClassVar[Optional[bytes]] = None
+
+    @hybrid_property
+    def message(self) -> str:
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for decryption on Notification")
+        return encryption.decrypt_with_dek(self._message_encrypted, self._plaintext_dek)
+
+    @message.setter
+    def message(self, value: str):
+        if self._plaintext_dek is None: raise RuntimeError("DEK not loaded for encryption on Notification")
+        self._message_encrypted = encryption.encrypt_with_dek(value, self._plaintext_dek)
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="notifications")
