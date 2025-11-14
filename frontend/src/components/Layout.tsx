@@ -5,6 +5,7 @@ import { NotificationBell } from './NotificationBell';
 import { Users, Calendar, Pill, Shield, Home } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LogoutButton from './LogoutButton';
+import Version from './Version';
 
 interface NavItem {
   id: string;
@@ -97,6 +98,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </header>
 
       <main className="p-6">{children}</main>
+      <Version />
     </div>
   );
 };
