@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Response, Request, Depends
-from app.models import User, Family, FamilyMember, FamilyMembership
+from app.models import User, Family, FamilyMember, FamilyMembership, FamilyEncryptionKey
 from app.schemas import UserOut, TOTP, TOTPSetup, TOTPVerifyRequest, LoginForm, RegisterForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,9 +8,9 @@ from sqlalchemy.orm import joinedload
 from app.database import get_db
 from app.config import settings
 from app.security.passwords import hash_password, verify_password
-from app.security.encryption import encrypt_secret, decrypt_secret
+from app.security.encryption import encrypt_secret, decrypt_secret, generate_and_encrypt_dek, decrypt_dek
 from app.auth.session import store_session, set_auth_cookie, clear_auth_cookie, new_sid, redis_client
-from app.auth.dependencies import get_current_user, get_user_by_id, totp_ok
+from app.auth.dependencies import get_current_user, get_current_hydrated_user, get_user_by_id, totp_ok
 import pyotp, secrets
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -21,21 +21,39 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
     
     try:
+        plaintext_dek, encrypted_dek_for_db = generate_and_encrypt_dek()
+
         new_user = User(
             email=form.email,
-            first_name=form.first_name,
-            last_name=form.last_name,
             password_hash=hash_password(form.password)
         )
+        
+        # The user has the key
+        new_user._plaintext_dek = plaintext_dek
+
+        # Setting these properties now automatically encrypts the data
+        new_user.first_name = form.first_name
+        new_user.last_name = form.last_name
+
         db.add(new_user)
         await db.flush() # Get the new_user.id before the commit
 
         # Create the Family automatically
-        new_family = Family(name=form.family_name, owner_id=new_user.id)
+        new_family = Family(owner_id=new_user.id)
+
+        new_family._plaintext_dek = plaintext_dek # hydrate
+        
+        new_family.name = form.family_name # encrypt
 
         db.add(new_family)
         await db.flush() # Get the new_family.id
 
+        new_key_record = FamilyEncryptionKey(
+            family_id=new_family.id,
+            encrypted_dek=encrypted_dek_for_db
+        )
+        db.add(new_key_record)
+        
         # Create the FamilyMembership link
         new_membership = FamilyMembership(
             user_id=new_user.id,
@@ -43,13 +61,6 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
             role='owner'
         )
         db.add(new_membership)
-
-        initial_member = FamilyMember(
-            family_id=new_family.id,
-            first_name=new_user.first_name,
-            last_name=new_user.last_name,
-        )
-        db.add(initial_member)
 
         # Commit the transaction
         await db.commit()
@@ -67,7 +78,7 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
     await store_session(sid, new_user.id)
     set_auth_cookie(response, sid)
     
-    return {"message": "Account and family created successfully."}
+    return {"message": "Cuenta y familia creadas con éxito."}
 
 @router.post("/login")
 async def login(response: Response, form: LoginForm, db: AsyncSession = Depends(get_db)):
@@ -85,7 +96,7 @@ async def login(response: Response, form: LoginForm, db: AsyncSession = Depends(
     await store_session(sid, user.id)
     set_auth_cookie(response, sid)
     
-    return {"message": "Login successful"}
+    return {"message": "Inicio de sesión exitoso."}
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(request: Request, response: Response):
@@ -94,22 +105,20 @@ async def logout(request: Request, response: Response):
     clear_auth_cookie(response)
 
 @router.get("/me", response_model=UserOut)
-async def get_current_user_info(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    stmt = select(FamilyMembership).where(
-        FamilyMembership.user_id == user.id
-    ).options(joinedload(FamilyMembership.family))
-
-    memberships = (await db.scalars(stmt)).all()
-
+async def get_current_user_info(
+    user: User = Depends(get_current_hydrated_user)
+):
     families_summary = []
-    for mem in memberships:
+    for mem in user.memberships: # Directly use the loaded relationship
         if mem.family:
+            # The mem.family object was already hydrated inside the dependency, so this is safe.
             families_summary.append({
                 "id": mem.family.id,
-                "name": mem.family.name,
+                "name": mem.family.name, 
                 "role": mem.role
             })
 
+    # The user object itself was also hydrated.
     user_response = {
         "id": user.id,
         "email": user.email,

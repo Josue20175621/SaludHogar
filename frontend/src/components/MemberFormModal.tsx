@@ -100,8 +100,8 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClos
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
                 >
                   <option value="">Seleccionar género</option>
-                  <option value="male">Masculino</option>
-                  <option value="female">Femenino</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
                 </select>
               </div>
 

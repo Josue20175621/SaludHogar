@@ -28,7 +28,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 
 from app.database import get_db
-from app.family.dependencies import get_target_member
+from app.family.dependencies import get_target_member, get_hydrated_target_member
 from app.models import (
     FamilyMember, Appointment, Medication, Vaccination, 
     Allergy, Condition, Surgery, Hospitalization, 
@@ -74,64 +74,57 @@ async def serve_member_photo(member: FamilyMember = Depends(get_target_member)):
     headers = {"Cache-Control": "private, max-age=86400"}
     return FileResponse(file_path, media_type=media_type, headers=headers)
 
-
-
 @router.get("/appointments", response_model=List[AppointmentOut])
 async def get_member_appointments(
-    # This dependency will automatically get the member from the URL
-    # and validate their ownership.
-    target_member: FamilyMember = Depends(get_target_member),
+    hydrated_member: FamilyMember = Depends(get_hydrated_target_member),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Get all appointments for a specific family member.
-    """
-    stmt = select(Appointment).where(
-        Appointment.member_id == target_member.id
-    ).order_by(Appointment.appointment_date.desc())
-    
+    plaintext_dek = hydrated_member._plaintext_dek
+
+    stmt = select(Appointment).where(Appointment.member_id == hydrated_member.id).order_by(Appointment.appointment_date.desc())
     result = await db.execute(stmt)
     appointments = result.scalars().all()
+    
+    for item in appointments:
+        item._plaintext_dek = plaintext_dek
+    
     return appointments
-
 
 @router.get("/medications", response_model=List[MedicationOut])
 async def get_member_medications(
-    target_member: FamilyMember = Depends(get_target_member),
+    hydrated_member: FamilyMember = Depends(get_hydrated_target_member),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Get all medications for a specific family member.
-    """
-    stmt = select(Medication).where(
-        Medication.member_id == target_member.id
-    ).order_by(Medication.start_date.desc())
-    
+    plaintext_dek = hydrated_member._plaintext_dek
+    stmt = select(Medication).where(Medication.member_id == hydrated_member.id).order_by(Medication.start_date.desc())
     result = await db.execute(stmt)
     medications = result.scalars().all()
+
+    for item in medications:
+        item._plaintext_dek = plaintext_dek
+        
     return medications
 
 @router.get("/vaccinations", response_model=List[VaccinationOut])
 async def get_member_vaccinations(
-    target_member: FamilyMember = Depends(get_target_member),
+    hydrated_member: FamilyMember = Depends(get_hydrated_target_member),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Get all vaccinations for a specific family member.
-    """
-    stmt = select(Vaccination).where(
-        Vaccination.member_id == target_member.id
-    ).order_by(Vaccination.date_administered.desc())
-    
+    plaintext_dek = hydrated_member._plaintext_dek
+    stmt = select(Vaccination).where(Vaccination.member_id == hydrated_member.id).order_by(Vaccination.date_administered.desc())
     result = await db.execute(stmt)
     vaccinations = result.scalars().all()
+    
+    for item in vaccinations:
+        item._plaintext_dek = plaintext_dek
+        
     return vaccinations
 
 def fmt_date(d): return d.strftime('%d/%m/%Y') if d else "—"
 
 @router.get("/medical-report", response_model=MedicalReport)
 async def generate_medical_report(
-    target_member: FamilyMember = Depends(get_target_member),
+    target_member: FamilyMember = Depends(get_hydrated_target_member),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -148,6 +141,8 @@ async def generate_medical_report(
     - Family Medical History (Tier 3)
     - Social History (Tier 3)
     """
+    plaintext_dek = target_member._plaintext_dek
+
     stmts = {
         "allergies": select(Allergy).where(Allergy.member_id == target_member.id),
         "medications": select(Medication).where(Medication.member_id == target_member.id),
@@ -169,6 +164,10 @@ async def generate_medical_report(
     for key, stmt in stmts.items():
         res = await db.execute(stmt)
         results[key] = res.scalars().all()
+
+    for key in results:
+        for item in results[key]:
+            item._plaintext_dek = plaintext_dek
 
     member_out = FamilyMemberOut.model_validate(target_member)
 
@@ -305,7 +304,7 @@ class MedicalReportStyler:
 
 @router.get("/medical-report/pdf")
 async def generate_medical_report_pdf(
-    target_member: FamilyMember = Depends(get_target_member),
+    target_member: FamilyMember = Depends(get_hydrated_target_member),
     db: AsyncSession = Depends(get_db),
 ):
     """

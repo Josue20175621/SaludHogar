@@ -5,7 +5,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.family.dependencies import get_current_active_family
+from app.family.dependencies import get_current_active_family, get_family_and_dek
 from app.models import Medication, Family, FamilyMember
 from app.schemas import (
     MedicationOut,
@@ -20,17 +20,16 @@ router = APIRouter(
 
 @router.get("", response_model=list[MedicationOut])
 async def get_all_medications_for_family(
-    current_family: Family = Depends(get_current_active_family),
     db: AsyncSession = Depends(get_db),
-    
+    family_and_dek: tuple[Family, bytes] = Depends(get_family_and_dek),
     active: Optional[bool] = Query(default=None, description="Filter for active medications"),
-    
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     sort_by: str = Query(default="start_date", description="Field to sort by"),
     sort_order: str = Query(default="desc", description="Sort order: 'asc' or 'desc'")
 ):
-    stmt = select(Medication).where(Medication.family_id == current_family.id)
+    family, plaintext_dek = family_and_dek
+    stmt = select(Medication).where(Medication.family_id == family.id)
     today = func.current_date()
 
     if active is True:
@@ -44,7 +43,7 @@ async def get_all_medications_for_family(
         )
 
     sort_column = getattr(Medication, sort_by, None)
-    allowed_sort_columns = ["start_date", "name", "created_at"] # no ePHI
+    allowed_sort_columns = ["start_date", "created_at"] # no ePHI
     if sort_by in allowed_sort_columns and sort_column:
         if sort_order.lower() == 'asc': stmt = stmt.order_by(sort_column.asc())
         else: stmt = stmt.order_by(sort_column.desc())
@@ -55,43 +54,60 @@ async def get_all_medications_for_family(
 
     result = await db.execute(stmt)
     medications = result.scalars().all()
+
+    for med in medications:
+        med._plaintext_dek = plaintext_dek
     return medications
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=MedicationOut)
 async def create_medication(
     medication_data: MedicationCreate,
-    current_family: Family = Depends(get_current_active_family),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    family_and_dek: tuple[Family, bytes] = Depends(get_family_and_dek)
 ):
-    # Ensure the member_id provided belongs to the current family.
-    member_check = await db.get(FamilyMember, medication_data.member_id)
-    if not member_check or member_check.family_id != current_family.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Family member with id {medication_data.member_id} not found in this family."
-        )
+    family, plaintext_dek = family_and_dek
 
-    new_medication = Medication(**medication_data.model_dump(), family_id=current_family.id)
+    member_check = await db.get(FamilyMember, medication_data.member_id)
+    if not member_check or member_check.family_id != family.id:
+        raise HTTPException(status_code=404, detail=f"Member {medication_data.member_id} not in family.")
+
+    new_medication = Medication(
+        family_id=family.id,
+        member_id=medication_data.member_id,
+        start_date=medication_data.start_date,
+        end_date=medication_data.end_date
+    )
+    new_medication._plaintext_dek = plaintext_dek
+    
+    new_medication.name = medication_data.name
+    new_medication.dosage = medication_data.dosage
+    new_medication.frequency = medication_data.frequency
+    new_medication.prescribed_by = medication_data.prescribed_by
+    new_medication.notes = medication_data.notes
     
     db.add(new_medication)
     await db.commit()
-    await db.refresh(new_medication, attribute_names=['member'])
+    await db.refresh(new_medication)
     
+    new_medication._plaintext_dek = plaintext_dek
     return new_medication
 
 @router.patch("/{medication_id}", response_model=MedicationOut)
 async def update_medication(
     medication_id: int,
     medication_data: MedicationUpdate,
-    current_family: Family = Depends(get_current_active_family),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    family_and_dek: tuple[Family, bytes] = Depends(get_family_and_dek)
 ):
+    family, plaintext_dek = family_and_dek
+    
     medication_to_update = await db.get(Medication, medication_id)
 
-    if not medication_to_update or medication_to_update.family_id != current_family.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found")
+    if not medication_to_update or medication_to_update.family_id != family.id:
+        raise HTTPException(status_code=404, detail="Medicamento no encontrado")
 
-    # Update the model with provided fields only
+    medication_to_update._plaintext_dek = plaintext_dek
+    
     update_data = medication_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(medication_to_update, key, value)
@@ -99,7 +115,9 @@ async def update_medication(
     db.add(medication_to_update)
     await db.commit()
     
-    await db.refresh(medication_to_update, attribute_names=['member'])
+    await db.refresh(medication_to_update)
+    
+    medication_to_update._plaintext_dek = plaintext_dek
     return medication_to_update
 
 @router.delete("/{medication_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -110,6 +128,6 @@ async def delete_medication(
 ):
     medication_to_delete = await db.get(Medication, medication_id)
     if not medication_to_delete or medication_to_delete.family_id != current_family.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento no encontrado")
     await db.delete(medication_to_delete)
     await db.commit()

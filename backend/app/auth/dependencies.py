@@ -2,10 +2,13 @@ import pyotp
 from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession 
+from sqlalchemy.orm import joinedload
 from app.config import settings
+
 from app.database import get_db
-from app.models import User
+from app.models import User, Family, FamilyMembership
 from app.auth.session import redis_client
+from app.security.encryption import decrypt_dek
 
 async def get_current_user(
     request: Request,
@@ -42,6 +45,35 @@ async def get_current_user(
         )
     
     return user
+
+async def get_current_hydrated_user(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    """
+    This dependency takes an authenticated user, fetches all their family data,
+    decrypts the necessary DEKs, and returns a fully "hydrated" User object
+    whose encrypted fields can be accessed directly.
+    """
+    # Re-fetch the user with all relationships eagerly loaded in one go.
+    # This is the most efficient way to get all the data.
+    stmt = select(User).where(User.id == user.id).options(
+        joinedload(User.memberships).joinedload(FamilyMembership.family).joinedload(Family.encryption_key)
+    )
+    hydrated_user = (await db.scalars(stmt)).first()
+
+    if not hydrated_user or not hydrated_user.memberships:
+        return user # Return the original user if no family info is found
+
+    family = hydrated_user.memberships[0].family
+    
+    if family and family.encryption_key:
+        plaintext_dek = decrypt_dek(family.encryption_key.encrypted_dek)
+
+        hydrated_user._plaintext_dek = plaintext_dek
+        family._plaintext_dek = plaintext_dek
+    
+    return hydrated_user
 
 async def get_user_by_id(uid: int, db: AsyncSession) -> User | None: return (await db.scalars(select(User).where(User.id == uid))).first()
 

@@ -3,18 +3,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, delete, update
 from app.models import User, Notification
 from app.schemas import NotificationOut
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, get_current_hydrated_user
 from app.database import get_db
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 @router.get("", response_model=list[NotificationOut])
-async def get_my_notifications(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_my_notifications(
+    user: User = Depends(get_current_hydrated_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    if user._plaintext_dek is None:
+        raise HTTPException(status_code=500, detail="Could not load decryption key for user.")
+    plaintext_dek = user._plaintext_dek
+
     stmt = select(Notification).where(
         Notification.user_id == user.id
     ).order_by(Notification.created_at.desc())
     
     notifications = (await db.scalars(stmt)).all()
+
+    for notification in notifications:
+        notification._plaintext_dek = plaintext_dek
+    
     return notifications
 
 @router.post("/{notification_id}/mark-read", status_code=204)

@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.family.dependencies import get_current_active_family
+from app.family.dependencies import get_current_active_family, get_family_and_dek
 from app.models import FamilyHistoryCondition, Family
 from app.schemas import (
     FamilyHistoryConditionCreate,
@@ -19,32 +19,46 @@ router = APIRouter(
 # Obtener todos los antecedentes familiares
 @router.get("", response_model=list[FamilyHistoryConditionOut])
 async def get_all_family_history(
-    current_family: Family = Depends(get_current_active_family),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    family_and_dek: tuple[Family, bytes] = Depends(get_family_and_dek)
 ):
+    family, plaintext_dek = family_and_dek
+
     stmt = (
         select(FamilyHistoryCondition)
-        .where(FamilyHistoryCondition.family_id == current_family.id)
-        .order_by(FamilyHistoryCondition.condition_name)
+        .where(FamilyHistoryCondition.family_id == family.id)
+        .order_by(FamilyHistoryCondition.created_at.desc())
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    conditions = result.scalars().all()
+
+    for condition in conditions:
+        condition._plaintext_dek = plaintext_dek
+        
+    return conditions
 
 
 # Crear un nuevo antecedente familiar
 @router.post("", response_model=FamilyHistoryConditionOut, status_code=status.HTTP_201_CREATED)
 async def create_family_history_condition(
     condition_data: FamilyHistoryConditionCreate,
-    current_family: Family = Depends(get_current_active_family),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    family_and_dek: tuple[Family, bytes] = Depends(get_family_and_dek)
 ):
-    new_condition = FamilyHistoryCondition(
-        **condition_data.dict(),
-        family_id=current_family.id
-    )
+    family, plaintext_dek = family_and_dek
+
+    new_condition = FamilyHistoryCondition(family_id=family.id)
+    new_condition._plaintext_dek = plaintext_dek
+    
+    new_condition.condition_name = condition_data.condition_name
+    new_condition.relative = condition_data.relative
+    new_condition.notes = condition_data.notes
+    
     db.add(new_condition)
     await db.commit()
     await db.refresh(new_condition)
+    
+    new_condition._plaintext_dek = plaintext_dek
     return new_condition
 
 
@@ -53,19 +67,25 @@ async def create_family_history_condition(
 async def update_family_history_condition(
     condition_id: int,
     condition_data: FamilyHistoryConditionUpdate,
-    current_family: Family = Depends(get_current_active_family),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    family_and_dek: tuple[Family, bytes] = Depends(get_family_and_dek)
 ):
+    family, plaintext_dek = family_and_dek
+    
     condition = await db.get(FamilyHistoryCondition, condition_id)
 
-    if not condition or condition.family_id != current_family.id:
+    if not condition or condition.family_id != family.id:
         raise HTTPException(status_code=404, detail="Antecedente no encontrado")
 
-    for key, value in condition_data.dict(exclude_unset=True).items():
+    condition._plaintext_dek = plaintext_dek
+    
+    for key, value in condition_data.model_dump(exclude_unset=True).items():
         setattr(condition, key, value)
 
     await db.commit()
     await db.refresh(condition)
+    
+    condition._plaintext_dek = plaintext_dek
     return condition
 
 
