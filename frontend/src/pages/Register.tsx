@@ -27,7 +27,7 @@ function Register() {
 
   const handleNextStep = () => {
     if (!first_name.trim() || !last_name.trim() || !email.trim()) {
-      notify('Por favor, completa tu nombre, apellido, nombre de familia y correo electrónico.', 'error');
+      notify('Por favor, completa tu nombre, apellido y correo electrónico.', 'error');
       return;
     }
 
