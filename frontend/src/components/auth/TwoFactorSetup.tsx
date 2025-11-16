@@ -77,7 +77,7 @@ const TwoFactorSetup = () => {
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
         {/* Back Button */}
         <button 
-          onClick={() => navigate('/app')}
+          onClick={() => navigate('/app/settings')}
           className="absolute top-6 left-6 flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors duration-200"
         >
           <ArrowLeft className="w-5 h-5" />
