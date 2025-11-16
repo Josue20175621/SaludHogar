@@ -18,7 +18,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(response: Response, form: RegisterForm, db: AsyncSession = Depends(get_db)):
     if (await db.scalars(select(User).where(User.email == form.email))).first():
-        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Correo electrónico ya registrado")
     
     try:
         new_user = User(
@@ -44,13 +44,6 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
         )
         db.add(new_membership)
 
-        initial_member = FamilyMember(
-            family_id=new_family.id,
-            first_name=new_user.first_name,
-            last_name=new_user.last_name,
-        )
-        db.add(initial_member)
-
         # Commit the transaction
         await db.commit()
     
@@ -58,22 +51,19 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
         # Roll back all the changes
         await db.rollback()
         print(f"Error de SQLAlchemy: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No se pudo crear la cuenta. Intenta de nuevo mas tarde"
-        )
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Error del servidor: intenta crear la cuenta mas tarde")
 
     sid = new_sid()
     await store_session(sid, new_user.id)
     set_auth_cookie(response, sid)
     
-    return {"message": "Account and family created successfully."}
+    return {"message": "Cuenta y familia creadas correctamente"}
 
 @router.post("/login")
 async def login(response: Response, form: LoginForm, db: AsyncSession = Depends(get_db)):
     user = (await db.scalars(select(User).where(User.email == form.email))).first()
     if not user or not verify_password(form.password, user.password_hash):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Correo electrónico o contraseña incorrectos")
     
     # If the user has TOTP enabled send preauth token
     if user.is_totp_enabled:
@@ -85,7 +75,7 @@ async def login(response: Response, form: LoginForm, db: AsyncSession = Depends(
     await store_session(sid, user.id)
     set_auth_cookie(response, sid)
     
-    return {"message": "Login successful"}
+    return {"message": "Inicio de sesión exitoso"}
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(request: Request, response: Response):

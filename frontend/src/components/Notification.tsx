@@ -4,29 +4,27 @@ import { X, CheckCircle, AlertCircle } from 'lucide-react';
 interface NotificationProps {
   message: string;
   type: 'success' | 'error';
+  closing: boolean;
   onClose: () => void;
+  onRequestClose: () => void;
 }
 
-function Notification({ message, type, onClose }: NotificationProps) {
+function Notification({ message, type, closing, onClose, onRequestClose }: NotificationProps) {
   const [isVisible, setIsVisible] = useState(false);
 
-  // Trigger the fade-in animation shortly after the component mounts
+  // Fade-in
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 100); // Small delay to ensure the initial state is rendered first
-
+    const timer = setTimeout(() => setIsVisible(true), 20);
     return () => clearTimeout(timer);
   }, []);
-  
-  // This function will start the fade-out animation
-  const handleClose = () => {
-    setIsVisible(false);
-    // Wait for the animation to finish before calling the parent's onClose
-    setTimeout(() => {
-      onClose();
-    }, 300); // This duration should match the transition duration
-  };
+
+  useEffect(() => {
+    if (closing) {
+      setIsVisible(false);
+      const timer = setTimeout(() => onClose(), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [closing, onClose]);
 
   const isSuccess = type === 'success';
 
@@ -46,12 +44,14 @@ function Notification({ message, type, onClose }: NotificationProps) {
           <AlertCircle className="w-6 h-6 text-red-500" />
         )}
       </div>
+
       <div className="flex-1">
         <p className="font-medium">{isSuccess ? 'Éxito' : 'Error'}</p>
-        <p className="text-sm">{message}</p>
+        <p className="text-sm font-semibold">{message}</p>
       </div>
+
       <button
-        onClick={handleClose}
+        onClick={onRequestClose}
         className="text-gray-500 hover:text-gray-700"
       >
         <X className="w-5 h-5" />

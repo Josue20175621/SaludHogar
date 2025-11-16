@@ -7,25 +7,62 @@ import { useNotifier } from '../context/NotificationContext';
 import type { AxiosError } from 'axios';
 import { authApi } from '../api/axios';
 
+const validateEmail = (email: string): string => {
+  if (!email) {
+    return 'El correo electrónico es obligatorio.';
+  }
+
+  const regex = /^[a-zA-Z0-9]+(?:[._-][a-zA-Z0-9]+)*@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
+  if (!regex.test(email)) {
+    return 'Por favor, introduce un correo electrónico válido.';
+  }
+  return '';
+};
+
+
 function Login() {
   const { fetchAndSetUser, preAuthToken, setPreAuthToken } = useAuth();
   const { notify } = useNotifier();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+
+  // State for validation errors
+  const [emailError, setEmailError] = useState<string>('');
+
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showTwoFactor, setShowTwoFactor] = useState<boolean>(() => !!preAuthToken);
   const [twoFactorCode, setTwoFactorCode] = useState<string>('');
   const [twoFactorLoading, setTwoFactorLoading] = useState<boolean>(false);
-  
+
   const navigate = useNavigate();
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (emailError) {
+      setEmailError('');
+    }
+  };
+
+  const handleEmailBlur = () => {
+    const error = validateEmail(email);
+    setEmailError(error);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    const emailValidationError = validateEmail(email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
       const response = await authApi.post('/login', { email, password });
-      
+
       // Check if user has 2FA enabled
       if (response.data.requires_2fa) {
         setPreAuthToken(response.data.token);
@@ -36,7 +73,26 @@ function Login() {
       }
 
     } catch (error: any) {
-      notify(error.response?.data?.message || 'Error al iniciar sesión', 'error');
+      let errorMessage = 'Error al iniciar sesion'; // default
+
+      // check if the error has a response from the server
+      if (error.response && error.response.data && error.response.data.detail) {
+        const detail = error.response.data.detail;
+
+        // handle FastAPI/Pydantic 422 Validation Error (detail is an array)
+        if (Array.isArray(detail) && detail.length > 0) {
+          // Use the message from the first validation error
+          errorMessage = detail[0].msg;
+
+          // handle manual HTTPException errors (detail is a string)
+        } else if (typeof detail === 'string') {
+          errorMessage = detail;
+        }
+      }
+
+      // use the parsed message, or the default if parsing failed
+      notify(errorMessage, 'error');
+
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +101,7 @@ function Login() {
   const handleTwoFactorSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setTwoFactorLoading(true);
-    
+
     try {
       await handleTwoFactorVerification(twoFactorCode);
     } catch (error: any) {
@@ -61,16 +117,16 @@ function Login() {
     }
     try {
       await authApi.post('/2fa/verify', { code, token: preAuthToken });
-      
+
       // Login successful with 2FA
       setPreAuthToken(null);
       fetchAndSetUser();
       navigate('/app');
     } catch (err: any) {
       setTwoFactorCode('');
-      
+
       const axiosErr = err as AxiosError<{ detail?: string }>;
-      const errorMessage = axiosErr.response?.data?.detail 
+      const errorMessage = axiosErr.response?.data?.detail
         ?? 'Código de verificación inválido o expirado.';
 
       notify(errorMessage, 'error');
@@ -96,7 +152,7 @@ function Login() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
         {/* Back Button */}
-        <button 
+        <button
           onClick={handleBackFrom2FA}
           className="absolute top-6 left-6 flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors duration-200"
         >
@@ -169,8 +225,8 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       {/* Back Button */}
-      <Link 
-        to="/" 
+      <Link
+        to="/"
         className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-gray-800 transition-colors duration-200"
       >
         <ArrowLeft className="w-5 h-5" />
@@ -208,12 +264,20 @@ function Login() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
+                  onBlur={handleEmailBlur}
                   placeholder="tu@ejemplo.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-200 bg-white/50 ${emailError
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-gray-200 focus:ring-cyan-500'
+                    }`}
                 />
               </div>
+              {/* Error Message Display */}
+              {emailError && (
+                <p className="mt-2 text-sm text-red-600">{emailError}</p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -269,8 +333,8 @@ function Login() {
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-center text-gray-600">
               ¿No tienes una cuenta?{' '}
-              <Link 
-                to="/register" 
+              <Link
+                to="/register"
                 className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors duration-200"
               >
                 Regístrate aquí

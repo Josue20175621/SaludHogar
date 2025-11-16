@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react'
+import type { ReactNode } from 'react';
 import { createContext, useState, useContext, useEffect } from 'react';
 import Notification from '../components/Notification';
 
@@ -7,9 +7,7 @@ type NotificationType = 'success' | 'error';
 interface NotificationState {
   message: string;
   type: NotificationType;
-  
-  // We add a key to ensure React re-creates the component on new notifications
-  key: number; 
+  isClosing: boolean;
 }
 
 interface NotificationContextProps {
@@ -21,24 +19,26 @@ const NotificationContext = createContext<NotificationContextProps | undefined>(
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notification, setNotification] = useState<NotificationState | null>(null);
 
-  // Effect to handle auto-dismissal
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => {
-        // This will trigger the fade-out animation in the Notification component
-        closeNotification();
-      }, 5000); // Auto-dismiss after 5 seconds
-
-      return () => clearTimeout(timer);
-    }
-  }, [notification]); // Re-run effect when notification changes
-
   const notify = (message: string, type: NotificationType) => {
-    setNotification({ message, type, key: Date.now() });
+    setNotification({ message, type, isClosing: false });
   };
 
-  // This function is now passed to the component to be called after the animation
-  const closeNotification = () => {
+  useEffect(() => {
+    if (notification && !notification.isClosing) {
+      const timer = setTimeout(() => {
+        startClose();
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const startClose = () => {
+    setNotification(prev =>
+      prev ? { ...prev, isClosing: true } : null
+    );
+  };
+
+  const finishClose = () => {
     setNotification(null);
   };
 
@@ -46,10 +46,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     <NotificationContext.Provider value={{ notify }}>
       {notification && (
         <Notification
-          key={notification.key} // The key is important!
           message={notification.message}
           type={notification.type}
-          onClose={closeNotification}
+          closing={notification.isClosing}
+          onClose={finishClose}
+          onRequestClose={startClose}
         />
       )}
       {children}

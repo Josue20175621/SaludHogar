@@ -54,27 +54,46 @@ function Register() {
       return;
     }
 
-    if (password.length < 8) {
-      notify('La contraseña debe tener al menos 8 caracteres.', 'error');
-      return;
-    }
-
     setIsLoading(true);
 
     const defaultFamilyName = `Familia ${last_name}`;
 
     try {
-      await authApi.post('/register', {
+      const response = await authApi.post('/register', {
         first_name: first_name,
         last_name: last_name,
         family_name: defaultFamilyName,
         email,
         password,
       });
+      notify(response.data.message, 'success');
       await fetchAndSetUser();
       navigate('/app');
     } catch (error: any) {
-      notify(error.response?.data?.message || 'Error al crear la cuenta', 'error');
+      let errorMessage = 'Error al crear la cuenta'; // default
+
+      if (error.response && error.response.data) {
+
+        // Check for the 409 Conflict status code
+        if (error.response.status === 409) {
+          notify(error.response.data.detail || "Este correo ya está en uso.", 'error');
+          setStep(1);
+          setEmailError(true);
+          return;
+        }
+
+        // Handle other types of errors (like 422 validation)
+        const detail = error.response.data.detail;
+        if (Array.isArray(detail) && detail.length > 0) {
+          errorMessage = detail[0].msg;
+        } else if (typeof detail === 'string') {
+          errorMessage = detail;
+        }
+      }
+
+      // Use the parsed message, or the default if parsing failed
+      notify(errorMessage, 'error');
+
     } finally {
       setIsLoading(false);
     }
@@ -194,7 +213,7 @@ function Register() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder="Contraseña"
                       required
                       className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white/50"
                     />
@@ -202,6 +221,9 @@ function Register() {
                       {showPassword ? <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" /> : <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />}
                     </button>
                   </div>
+                  <p className="text-sm text-red-600 mt-1">
+                    La contraseña debe tener al menos 8 caracteres e incluir al menos una letra y un número.
+                  </p>
                 </div>
 
                 {/* Confirm Password Field */}

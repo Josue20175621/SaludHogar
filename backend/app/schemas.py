@@ -1,5 +1,7 @@
+import re
 from datetime import datetime, date
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
+from pydantic_core import PydanticCustomError
 from typing import List, Optional
 
 class LoginForm(BaseModel):
@@ -7,11 +9,52 @@ class LoginForm(BaseModel):
     password: str
 
 class RegisterForm(BaseModel):
-    first_name: str
-    last_name: str
-    family_name: str
+    first_name: str = Field(..., strip_whitespace=True)
+    last_name: str = Field(..., strip_whitespace=True)
+    family_name: str = Field(..., strip_whitespace=True)
     email: EmailStr
     password: str
+
+    @field_validator('first_name', 'last_name', 'family_name')
+    @classmethod
+    def validate_names(cls, value: str) -> str:
+        if len(value) < 1:
+            raise PydanticCustomError(
+                'empty_field',
+                "Este campo no puede estar vacío."
+            )
+        if len(value) > 50:
+            raise PydanticCustomError(
+                'value_too_long',
+                "Este campo no puede tener más de 50 caracteres."
+            )
+        return value
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_complexity(cls, value: str) -> str:
+        # Minimum length
+        if len(value) < 8:
+            raise PydanticCustomError(
+                'password_too_short',
+                "La contraseña debe tener al menos 8 caracteres."
+            )
+        
+        # Must contain at least one number
+        if not re.search(r"\d", value):
+            raise PydanticCustomError(
+                'password_no_number',
+                "La contraseña debe contener al menos un número."
+            )
+            
+        # Must contain at least one letter
+        if not re.search(r"[a-zA-Z]", value):
+            raise PydanticCustomError(
+                'password_no_letter',
+                "La contraseña debe contener al menos una letra."
+            )
+            
+        return value
 
 class FamilyForm(BaseModel):
     name: str
