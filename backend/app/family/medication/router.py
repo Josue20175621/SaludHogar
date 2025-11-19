@@ -69,13 +69,15 @@ async def create_medication(
 
     member_check = await db.get(FamilyMember, medication_data.member_id)
     if not member_check or member_check.family_id != family.id:
-        raise HTTPException(status_code=404, detail=f"Member {medication_data.member_id} not in family.")
+        raise HTTPException(status_code=404, detail=f"Miembro {medication_data.member_id} no encontrado")
 
     new_medication = Medication(
         family_id=family.id,
         member_id=medication_data.member_id,
         start_date=medication_data.start_date,
-        end_date=medication_data.end_date
+        end_date=medication_data.end_date,
+        reminder_times=medication_data.reminder_times,
+        reminder_days=medication_data.reminder_days
     )
     new_medication._plaintext_dek = plaintext_dek
     

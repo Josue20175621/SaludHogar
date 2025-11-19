@@ -1,9 +1,10 @@
 from datetime import datetime, date
-from typing import List, Optional, ClassVar
+from typing import List, Optional
 
 from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.types import JSON
 from app.security import encryption
 
 
@@ -73,6 +74,7 @@ class Family(Base):
     __tablename__ = "families"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    timezone: Mapped[str] = mapped_column(String(50), nullable=False, default="America/Santo_Domingo") # Store the IANA string
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), 
         nullable=False,
@@ -509,6 +511,10 @@ class Medication(Base):
     )
     start_date: Mapped[Optional[date]] = mapped_column(Date)
     end_date: Mapped[Optional[date]] = mapped_column(Date)
+
+    reminder_times: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
+    reminder_days: Mapped[Optional[List[int]]] = mapped_column(JSON, nullable=True) # Stores [0, 2, 4] for Mon, Wed, Fri
+    last_reminder_sent_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )

@@ -16,27 +16,27 @@ const NotificationIcon: React.FC<{ type: string }> = ({ type }) => {
 };
 
 const NotificationsPage: React.FC = () => {
-  const { data: notifications, isLoading } = useNotifications();
+  const { data: notifications, isLoading, refetch, isRefetching } = useNotifications();
   const markAllAsReadMutation = useMarkAllNotificationsAsRead();
 
-  // State to keep track of notifications that were unread on load
   const [newlyReadIds, setNewlyReadIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    if (notifications) {
-      // Find unread notifications
+    refetch();
+  }, [refetch]);
+
+  useEffect(() => {
+    if (notifications && !isRefetching) {
       const unreadNotifications = notifications.filter(n => !n.is_read);
 
       if (unreadNotifications.length > 0) {
-        // Store their IDs to trigger the flash animation
         const unreadIds = new Set(unreadNotifications.map(n => n.id));
         setNewlyReadIds(unreadIds);
 
-        // Mark them all as read in the backend
         markAllAsReadMutation.mutate();
       }
     }
-  }, [notifications, markAllAsReadMutation]);
+  }, [notifications, markAllAsReadMutation, isRefetching]);
 
   if (isLoading) {
     return (
@@ -58,7 +58,6 @@ const NotificationsPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <Bell className="w-8 h-8 text-gray-700" />
@@ -68,7 +67,6 @@ const NotificationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Notifications List */}
       {notifications && notifications.length > 0 ? (
         <div className="space-y-3">
           {notifications.map(notification => {
@@ -87,18 +85,15 @@ const NotificationsPage: React.FC = () => {
               >
                 <div className="p-5">
                   <div className="flex items-start gap-4">
-                    {/* Icon */}
                     <div className="p-2 flex-shrink-0 mt-1">
                       <NotificationIcon type={notification.type} />
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm leading-relaxed mb-2 ${isNew ? 'text-gray-900 font-medium' : 'text-gray-800'}`}>
                         {notification.message}
                       </p>
 
-                      {/* Timestamp */}
                       <div className={`flex items-center gap-3 text-sm ${isNew ? 'text-blue-600' : 'text-gray-500'}`}>
                         <span>
                           {formatDistanceToNow(new Date(notification.created_at), {
