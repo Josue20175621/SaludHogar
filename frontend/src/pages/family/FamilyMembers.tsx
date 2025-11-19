@@ -22,11 +22,6 @@ export const getRelationBadgeColor = (relation: string | null): string => {
     Abuela: 'bg-yellow-100 text-yellow-800',
     Hermano: 'bg-purple-100 text-purple-800',
     Hermana: 'bg-purple-100 text-purple-800',
-    Tío: 'bg-indigo-100 text-indigo-800',
-    Tía: 'bg-indigo-100 text-indigo-800',
-    Primo: 'bg-teal-100 text-teal-800',
-    Prima: 'bg-teal-100 text-teal-800',
-    Otro: 'bg-gray-200 text-gray-800',
   };
 
   return colorMap[relation] || 'bg-gray-100 text-gray-700';

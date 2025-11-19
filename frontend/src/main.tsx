@@ -23,6 +23,7 @@ import Appointments from './pages/appointments/Appointments';
 import Medications from './pages/medications/Medications';
 import Vaccinations from './pages/vaccinations/Vaccinations';
 import Notifications from './pages/notifications/Notifications'
+import Settings from './pages/Settings'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,7 +68,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   <Route path="notifications" element={<Notifications />} /> {/* /app/notifications */}
 
                   {/* <Route path="profile" element={<ProfilePage />} /> */}
-                  {/* <Route path="settings" element={<SettingsPage />} /> /app/settings */}
+                  <Route path="settings" element={<Settings />} />
                 </Route>
                 <Route path="/mfa" element={<TwoFactorSetup />} />
               </Route>

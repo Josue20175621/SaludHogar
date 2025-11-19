@@ -71,45 +71,56 @@ const NotificationsPage: React.FC = () => {
       {/* Notifications List */}
       {notifications && notifications.length > 0 ? (
         <div className="space-y-3">
-          {notifications.map(notification => (
-            <div
-              key={notification.id}
-              className={`
-                bg-white rounded-lg border border-gray-200
-                ${newlyReadIds.has(notification.id) ? 'flash-new' : ''}
-              `}
-            >
-              <div className="p-5">
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className="p-2 flex-shrink-0 mt-1">
-                    <NotificationIcon type={notification.type} />
-                  </div>
+          {notifications.map(notification => {
+            const isNew = newlyReadIds.has(notification.id);
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 leading-relaxed mb-2">
-                      {notification.message}
-                    </p>
-
-                    {/* Timestamp */}
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
-                      <span>
-                        {formatDistanceToNow(new Date(notification.created_at), {
-                          addSuffix: true,
-                          locale: es
-                        })}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        {format(new Date(notification.created_at), "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
-                      </span>
+            return (
+              <div
+                key={notification.id}
+                className={`
+                  rounded-lg border transition-colors duration-300
+                  ${isNew
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-white border-gray-200'
+                  }
+                `}
+              >
+                <div className="p-5">
+                  <div className="flex items-start gap-4">
+                    {/* Icon */}
+                    <div className="p-2 flex-shrink-0 mt-1">
+                      <NotificationIcon type={notification.type} />
                     </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm leading-relaxed mb-2 ${isNew ? 'text-gray-900 font-medium' : 'text-gray-800'}`}>
+                        {notification.message}
+                      </p>
+
+                      {/* Timestamp */}
+                      <div className={`flex items-center gap-3 text-sm ${isNew ? 'text-blue-600' : 'text-gray-500'}`}>
+                        <span>
+                          {formatDistanceToNow(new Date(notification.created_at), {
+                            addSuffix: true,
+                            locale: es
+                          })}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {format(new Date(notification.created_at), "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isNew && (
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white rounded-lg border p-12">

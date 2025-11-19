@@ -2,9 +2,10 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
-import { Users, Calendar, Pill, Shield, Home } from 'lucide-react';
+import { Users, Calendar, Pill, Shield, Home, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LogoutButton from './LogoutButton';
+import Version from './Version';
 
 interface NavItem {
   id: string;
@@ -20,7 +21,8 @@ const navigationItems: NavItem[] = [
   { id: 'notifications', label: 'Notificaciones', path: '/app/notifications', icon: NotificationBell, isCustom: true },
   { id: 'appointments', label: 'Citas medicas', path: '/app/appointments', icon: Calendar },
   { id: 'medications', label: 'Medicamentos', path: '/app/medications', icon: Pill },
-  { id: 'vaccinations', label: 'Vacunas', path: '/app/vaccinations', icon: Shield }
+  { id: 'vaccinations', label: 'Vacunas', path: '/app/vaccinations', icon: Shield },
+  { id: 'settings', label: 'Configuración', path: '/app/settings', icon: Settings }
 ];
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -97,6 +99,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </header>
 
       <main className="p-6">{children}</main>
+      <Version />
     </div>
   );
 };

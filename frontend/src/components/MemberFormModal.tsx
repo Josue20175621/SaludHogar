@@ -14,7 +14,7 @@ interface MemberFormModalProps {
 
 const relationOptions = [
   'Padre', 'Madre', 'Hijo', 'Hija', 'Abuelo', 'Abuela',
-  'Hermano', 'Hermana', 'Tío', 'Tía', 'Primo', 'Prima', 'Otro'
+  'Hermano', 'Hermana'
 ];
 
 export const MemberFormModal: React.FC<MemberFormModalProps> = ({ isOpen, onClose, onSubmit, initialData, isLoading }) => {
