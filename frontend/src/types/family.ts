@@ -42,13 +42,18 @@ export interface Appointment {
 export interface Medication {
   id: number;
   member_id: number;
+  family_id: number;
   name: string;
   dosage: string;
   frequency: string;
   start_date: string;
-  end_date: string;
-  prescribed_by: string;
-  notes: string;
+  end_date: string | null;
+  prescribed_by: string | null;
+  notes: string | null;
+  created_at: string;
+  
+  reminder_times: string[] | null; // ["08:00", "20:00"]
+  reminder_days: number[] | null;  // [0, 2, 4] (0=Lunes, 6=Domingo)
 }
 
 export interface Vaccination {

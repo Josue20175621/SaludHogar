@@ -27,7 +27,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (notification && !notification.isClosing) {
       const timer = setTimeout(() => {
         startClose();
-      }, 6000);
+      }, 7000);
       return () => clearTimeout(timer);
     }
   }, [notification]);

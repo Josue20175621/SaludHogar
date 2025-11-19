@@ -5,6 +5,7 @@ import { Heart, Mail, Lock, ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-re
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../api/axios';
 import { useNotifier } from '../context/NotificationContext';
+import { getUserTimezone } from '../utils/dateUtils';
 
 function Register() {
   const { fetchAndSetUser } = useAuth();
@@ -57,12 +58,14 @@ function Register() {
     setIsLoading(true);
 
     const defaultFamilyName = `Familia ${last_name}`;
+    const timezone = getUserTimezone();
 
     try {
       const response = await authApi.post('/register', {
         first_name: first_name,
         last_name: last_name,
         family_name: defaultFamilyName,
+        timezone: timezone,
         email,
         password,
       });

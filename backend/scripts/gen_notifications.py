@@ -1,10 +1,11 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
 from sqlalchemy.orm import selectinload
 from app.database import AsyncSessionLocal
-from app.models import Appointment, Notification, FamilyMembership
+from app.models import Appointment, Notification, FamilyMembership, Medication
 
 
 async def find_upcoming_appointments_and_notify():
@@ -70,9 +71,106 @@ async def find_upcoming_appointments_and_notify():
 
     print("Recordatorio de cita completo.")
 
+async def find_medications_and_notify():
+    print(f"[{datetime.now()}] corriendo check de medicamentos...")
+
+    async with AsyncSessionLocal() as db:
+        try:
+            server_now_utc = datetime.now(timezone.utc)
+
+            stmt = select(Medication).join(Medication.family).where(
+                and_(
+                    Medication.start_date <= server_now_utc.date(),
+                    or_(Medication.end_date == None, Medication.end_date >= server_now_utc.date()),
+                    Medication.reminder_times.is_not(None) 
+                )
+            ).options(
+                selectinload(Medication.member),
+                selectinload(Medication.family)
+            )
+
+            result = await db.execute(stmt)
+            medications = result.scalars().all()
+            count_sent = 0
+
+            for med in medications:
+                if not med.reminder_times: 
+                    continue
+
+                fam_tz_str = med.family.timezone if med.family.timezone else "UTC"
+                try:
+                    family_tz = ZoneInfo(fam_tz_str)
+                except:
+                    family_tz = ZoneInfo("UTC")
+
+                family_local_now = server_now_utc.astimezone(family_tz)
+                
+                # Python weekday(): 0=Monday, 6=Sunday
+                current_weekday = family_local_now.weekday()
+
+                if med.reminder_days and len(med.reminder_days) > 0:
+                    if current_weekday not in med.reminder_days:
+                        continue
+
+                should_notify = False
+                
+                for time_str in med.reminder_times:
+                    try:
+                        target_h, target_m = map(int, time_str.split(":"))
+                        
+                        # Target time today in user TZ
+                        target_dt_local = family_local_now.replace(
+                            hour=target_h, minute=target_m, second=0, microsecond=0
+                        )
+
+                        diff_minutes = (family_local_now - target_dt_local).total_seconds() / 60
+
+                        # Window: 0 to 5 minutes past schedule
+                        if 0 <= diff_minutes <= 5:
+                            should_notify = True
+                            break
+                    except ValueError:
+                        continue
+
+                if should_notify and med.last_reminder_sent_at:
+                    time_since_last = (server_now_utc - med.last_reminder_sent_at).total_seconds() / 60
+                    if time_since_last < 60:
+                        should_notify = False
+
+                if should_notify:
+                    print(f"Enviando recordatorio para {med.name} a familia en TIMEZONE:{fam_tz_str}")
+                    
+                    stmt_memberships = select(FamilyMembership).where(FamilyMembership.family_id == med.family_id)
+                    memberships_result = await db.execute(stmt_memberships)
+                    memberships = memberships_result.scalars().all()
+                    
+                    member_name = f"{med.member.first_name} {med.member.last_name}"
+                    message = f"💊 Hora de medicamento: {med.name} ({med.dosage}) para {member_name}."
+
+                    for membership in memberships:
+                        new_notification = Notification(
+                            user_id=membership.user_id,
+                            type='MEDICATION_REMINDER',
+                            message=message,
+                            related_entity_type='medication',
+                            related_entity_id=med.id
+                        )
+                        db.add(new_notification)
+
+                    med.last_reminder_sent_at = server_now_utc
+                    db.add(med)
+                    count_sent += 1
+
+            await db.commit()
+            print(f"Medicamentos revisados. Se enviaron {count_sent} recordatorios.")
+
+        except Exception as e:
+            await db.rollback()
+            print(f"Error en find_medications_and_notify: {e}")
 
 async def main():
     await find_upcoming_appointments_and_notify()
+    await find_medications_and_notify()
 
 if __name__ == "__main__":
     asyncio.run(main())

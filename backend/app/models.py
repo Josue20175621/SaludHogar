@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from sqlalchemy import ForeignKey, String, TIMESTAMP, func, Date, Boolean, Text, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import JSON
 
 
 class Base(DeclarativeBase):
@@ -49,6 +50,7 @@ class Family(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    timezone: Mapped[str] = mapped_column(String(50), nullable=False, default="America/Santo_Domingo") # Store the IANA string
 
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), 
@@ -259,7 +261,11 @@ class Medication(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     
     dosage: Mapped[str] = mapped_column(String(100), nullable=False)
-    frequency: Mapped[str] = mapped_column(String(100), nullable=False)
+    frequency: Mapped[str] = mapped_column(String(100), nullable=False) 
+
+    reminder_times: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
+    reminder_days: Mapped[Optional[List[int]]] = mapped_column(JSON, nullable=True) # Stores [0, 2, 4] for Mon, Wed, Fri
+    last_reminder_sent_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
 
     start_date: Mapped[Optional[date]] = mapped_column(Date)
     end_date: Mapped[Optional[date]] = mapped_column(Date)
@@ -269,12 +275,11 @@ class Medication(Base):
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
-    # Relationships
     family: Mapped["Family"] = relationship(back_populates="medications")
     member: Mapped["FamilyMember"] = relationship(back_populates="medications")
 
     def __repr__(self) -> str:
-        return f"<Medication id={self.id} name='{self.name}' member_id={self.member_id}>"
+        return f"<Medication id={self.id} name='{self.name}'>"
 
 class Vaccination(Base):
     __tablename__ = "vaccinations"

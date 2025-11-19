@@ -31,7 +31,7 @@ async def register(response: Response, form: RegisterForm, db: AsyncSession = De
         await db.flush() # Get the new_user.id before the commit
 
         # Create the Family automatically
-        new_family = Family(name=form.family_name, owner_id=new_user.id)
+        new_family = Family(name=form.family_name, timezone=form.timezone, owner_id=new_user.id)
 
         db.add(new_family)
         await db.flush() # Get the new_family.id

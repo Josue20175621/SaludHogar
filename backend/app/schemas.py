@@ -12,6 +12,7 @@ class RegisterForm(BaseModel):
     first_name: str = Field(..., strip_whitespace=True)
     last_name: str = Field(..., strip_whitespace=True)
     family_name: str = Field(..., strip_whitespace=True)
+    timezone: str = "America/Santo_Domingo"
     email: EmailStr
     password: str
 
@@ -176,10 +177,13 @@ class MedicationBase(BaseModel):
     name: str
     dosage: str
     frequency: str
-    start_date: Optional[date]
-    end_date: Optional[date]
-    prescribed_by: Optional[str]
-    notes: Optional[str]
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    prescribed_by: Optional[str] = None
+    notes: Optional[str] = None
+    
+    reminder_times: Optional[List[str]] = None  # ["08:00", "20:00"]
+    reminder_days: Optional[List[int]] = None   # [0, 2, 4]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -194,6 +198,9 @@ class MedicationUpdate(BaseModel):
     end_date: Optional[date] = None
     prescribed_by: Optional[str] = None
     notes: Optional[str] = None
+    
+    reminder_times: Optional[List[str]] = None
+    reminder_days: Optional[List[int]] = None
 
 class MedicationOut(MedicationBase):
     id: int
