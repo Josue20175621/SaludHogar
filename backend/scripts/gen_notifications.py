@@ -13,9 +13,7 @@ async def find_upcoming_appointments_and_notify():
     
     async with AsyncSessionLocal() as db:
         try:
-            # Get the current time in UTC
             now = datetime.now(timezone.utc)
-            
             reminder_window_end = now + timedelta(hours=24)
 
             stmt = select(Appointment).where(
@@ -23,30 +21,39 @@ async def find_upcoming_appointments_and_notify():
                 Appointment.appointment_date <= reminder_window_end,
                 Appointment.is_reminder_sent == False
             ).options(
-                selectinload(Appointment.member) # Eager load for the message content
+                selectinload(Appointment.member),
+                selectinload(Appointment.family)
             )
             
             result = await db.execute(stmt)
             appointments_to_notify = result.scalars().all()
 
             if not appointments_to_notify:
-                print("No se encontraron nuevas citas para notificar en las próximas 24 horas.")
-                await db.commit()
+                print("No se encontraron nuevas citas.")
                 return
 
             print(f"Encontre {len(appointments_to_notify)} citas que hay que recordar.")
 
             for appt in appointments_to_notify:
-                # Get all users in the family to send them a notification
+                member_name = f"{appt.member.first_name} {appt.member.last_name}"
+                
+                family_tz_str = appt.family.timezone or "UTC"
+                local_tz = ZoneInfo(family_tz_str)
+
+                # Convertimos la fecha UTC de la cita a la hora local de esa familia
+                local_date = appt.appointment_date.astimezone(local_tz)
+                
+                date_str = local_date.strftime('%d/%m/%Y a las %H:%M')
+
+                loc_text = f" en {appt.location}" if appt.location else ""
+                
+                message = f"Recordatorio: Cita para {member_name} el {date_str} con {appt.doctor_name}{loc_text}."
+
                 stmt_memberships = select(FamilyMembership).where(FamilyMembership.family_id == appt.family_id)
                 memberships_result = await db.execute(stmt_memberships)
                 memberships = memberships_result.scalars().all()
                 
                 for membership in memberships:
-                    member_name = f"{appt.member.first_name} {appt.member.last_name}"
-                    
-                    message = f"Recordatorio: Cita para {member_name} con {appt.doctor_name}."
-
                     new_notification = Notification(
                         user_id=membership.user_id,
                         type='APPOINTMENT_REMINDER',
@@ -55,21 +62,20 @@ async def find_upcoming_appointments_and_notify():
                         related_entity_id=appt.id
                     )
                     db.add(new_notification)
-                    print(f"  - Creando notificacion para usuario {membership.user_id} para cita {appt.id}")
+                    print(f"Notificando a usuario {membership.user_id} (Hora local familia: {date_str})")
                 
-                # Mark this appointment as notified to prevent future duplicates.
                 appt.is_reminder_sent = True
                 db.add(appt)
 
             await db.commit()
-            print("Se creo la notificacion y se marco is_reminder_sent.")
+            print("Proceso de notificaciones completado.")
         
         except Exception as e:
             await db.rollback()
             print(f"Error en find_upcoming_appointments_and_notify: {e}")
             raise
 
-    print("Recordatorio de cita completo.")
+    print("Done.")
 
 async def find_medications_and_notify():
     print(f"[{datetime.now()}] corriendo check de medicamentos...")

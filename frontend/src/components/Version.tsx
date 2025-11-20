@@ -17,7 +17,7 @@ const Version: React.FC = () => {
 
   return (
     <div style={footerStyle}>
-      Beta
+      RC 1
     </div>
   );
 };
