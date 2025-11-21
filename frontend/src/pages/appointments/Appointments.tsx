@@ -16,9 +16,9 @@ import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 const formatAppointmentDate = (dateString: string): string => {
   /*
-    Si la fecha de la cita es	hoy: "Hoy a las 14:00"
-    Mañana:	"Mañana a las 09:30"
-    Cualquier otro día en el futuro	"sábado, 21 de diciembre de 2025, 11:00"
+    Si la fecha de la cita es hoy: "Hoy a las 6:55 p. m."
+    Mañana: "Mañana a las 9:30 a. m."
+    Futuro: "sábado, 21 de diciembre de 2025, 11:00 a. m."
   */
   const date = new Date(dateString);
   const today = new Date();
@@ -28,18 +28,23 @@ const formatAppointmentDate = (dateString: string): string => {
   const isToday = date.toDateString() === today.toDateString();
   const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
-  const time = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const time = date.toLocaleTimeString('es-DO', { 
+    hour: 'numeric',
+    minute: '2-digit', 
+    hour12: true 
+  });
 
   if (isToday) return `Hoy a las ${time}`;
   if (isTomorrow) return `Mañana a las ${time}`;
 
-  return date.toLocaleDateString('es-ES', {
+  return date.toLocaleDateString('es-DO', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
   });
 };
 
