@@ -26,6 +26,8 @@ const Medications: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [medicationToDelete, setMedicationToDelete] = useState<Medication | null>(null);
 
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+
   const addMedicationMutation = useAddMedication();
   const updateMedicationMutation = useUpdateMedication();
   const deleteMedicationMutation = useDeleteMedication();
@@ -79,6 +81,17 @@ const Medications: React.FC = () => {
     );
   };
 
+  const membersList = Array.from(memberMap.values());
+
+  const filteredMedications = medications?.filter((med) => 
+    selectedMemberId === null ? true : med.member_id === selectedMemberId
+  );
+
+  const API_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    `${window.location.protocol}//${window.location.hostname}:8000`;
+
+
   if (isLoadingMedications || isLoadingMembers) {
     return (
       <div className="flex items-center justify-center h-full w-full">
@@ -88,7 +101,7 @@ const Medications: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 md:p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-6 md:p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-800">Medicamentos</h2>
         <button
@@ -100,9 +113,46 @@ const Medications: React.FC = () => {
         </button>
       </div>
 
-      {medications && medications.length > 0 ? (
+      {medications && medications.length > 0 && (
+        <div className="flex gap-2 items-center pb-4 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
+          <button
+            onClick={() => setSelectedMemberId(null)}
+            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all border whitespace-nowrap ${
+              selectedMemberId === null
+                ? 'bg-purple-600 text-white border-purple-600 shadow-md'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Todos
+          </button>
+          
+          {membersList.map((member) => (
+            <button
+              key={member.id}
+              onClick={() => setSelectedMemberId(member.id)}
+              className={`flex-shrink-0 flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all border whitespace-nowrap ${
+                selectedMemberId === member.id
+                  ? 'bg-purple-100 text-purple-800 border-purple-300 shadow-sm ring-1 ring-purple-300'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <div className="w-6 h-6 rounded-full overflow-hidden mr-2 flex-shrink-0 bg-gray-200 border border-gray-100">
+                 <img
+                    src={`${API_URL}/families/${activeFamily?.id}/members/${member.id}/photo`}
+                    alt={member.first_name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+              </div>
+              {member.first_name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filteredMedications && filteredMedications.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {medications.map(medication => (
+          {filteredMedications.map(medication => (
             <MedicationCard
               key={medication.id}
               medication={medication}
@@ -114,12 +164,26 @@ const Medications: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <div className="inline-flex p-2 bg-purple-100 rounded-lg mb-3">
-            <Pill className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200 border-dashed">
+          <div className="inline-flex p-3 bg-purple-50 rounded-full mb-4">
+            <Pill className="w-6 h-6 text-purple-400" />
           </div>
-          <p className="text-sm font-medium text-gray-700 mb-1">No hay medicamentos activos</p>
-          <p className="text-xs text-gray-500 mb-4">Los medicamentos registrados aparecerán aquí</p>
+          {medications && medications.length > 0 ? (
+             <>
+               <p className="text-sm font-medium text-gray-700 mb-1">No hay resultados para este filtro</p>
+               <button 
+                 onClick={() => setSelectedMemberId(null)}
+                 className="text-purple-600 text-sm font-semibold hover:underline mt-2"
+               >
+                 Ver todos los medicamentos
+               </button>
+             </>
+          ) : (
+             <>
+              <p className="text-sm font-medium text-gray-700 mb-1">No hay medicamentos activos</p>
+              <p className="text-xs text-gray-500 mb-4">Los medicamentos registrados aparecerán aquí</p>
+             </>
+          )}
         </div>
       )}
 
