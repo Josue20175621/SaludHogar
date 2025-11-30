@@ -11,10 +11,12 @@ export const calculateAge = (birthDate: string) => {
 
 export const formatDate = (dateString?: string | null) => {
   if (!dateString) return 'N/D';
+  
   return new Date(dateString).toLocaleDateString('es-DO', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC', 
   });
 };
 
